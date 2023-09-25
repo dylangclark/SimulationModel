@@ -1,0 +1,111 @@
+PCNAME,HA_Name,LHA_Name,HSDA_Name,Warning_Zone,EcoRegion
+Parksville,Vancouver Island,Oceanside,Central Vancouver Island,4,Coastal
+Gibsons,Vancouver Coastal,Sunshine Coast,North Shore/Coast Garibaldi,4,Coastal
+Squamish,Vancouver Coastal,Howe Sound,North Shore/Coast Garibaldi,4,Coastal
+Pemberton,Vancouver Coastal,Howe Sound,North Shore/Coast Garibaldi,4,Coastal
+Crofton,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,Coastal
+Roberts Creek,Vancouver Coastal,Sunshine Coast,North Shore/Coast Garibaldi,4,Coastal
+Tsawwassen,Fraser,Delta,Fraser South,5,Coastal
+Harrison Hot Springs,Fraser,Agassiz/Harrison,Fraser East,5,Coastal
+Aldergrove East,Fraser,Abbotsford,Fraser East,5,Coastal
+Miller's Landing,Vancouver Coastal,West Vancouver/Bowen Island,North Shore/Coast Garibaldi,4,Coastal
+Ladysmith,Vancouver Island,Cowichan Valley North,Central Vancouver Island,4,Coastal
+Lake Cowichan,Vancouver Island,Cowichan Valley West,Central Vancouver Island,4,Coastal
+Campbell River,Vancouver Island,Greater Campbell River,North Vancouver Island,4,Coastal
+Yarrow,Fraser,Chilliwack,Fraser East,5,Coastal
+Terrace,Northern,Terrace,Northwest,1,Coastal
+Ucluelet,Vancouver Island,Alberni/Clayoquot,Central Vancouver Island,4,Coastal
+Victoria,Vancouver Island,Greater Victoria,South Vancouver Island,4,Coastal
+White Rock,Fraser,Surrey,Fraser South,5,Coastal
+Cowichan Bay,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,Coastal
+Welcome Beach,Vancouver Coastal,Sunshine Coast,North Shore/Coast Garibaldi,4,Coastal
+Fairwinds,Vancouver Island,Oceanside,Central Vancouver Island,4,Coastal
+Cobble Hill,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,Coastal
+Chemainus,Vancouver Island,Cowichan Valley North,Central Vancouver Island,4,Coastal
+Chilliwack,Fraser,Chilliwack,Fraser East,5,Coastal
+Courtenay,Vancouver Island,Comox Valley,North Vancouver Island,4,Coastal
+Nanaimo,Vancouver Island,Greater Nanaimo,Central Vancouver Island,4,Coastal
+Ladner,Fraser,Delta,Fraser South,4,Coastal
+Abbotsford,Fraser,Abbotsford,Fraser East,5,Coastal
+Port Hardy,Vancouver Island,Vancouver Island North,North Vancouver Island,1,Coastal
+Sooke,Vancouver Island,Western Communities,South Vancouver Island,4,Coastal
+Mission,Fraser,Abbotsford,Fraser East,5,Coastal
+Cumberland,Vancouver Island,Comox Valley,North Vancouver Island,4,Coastal
+Duncan,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,Coastal
+Puntledge,Vancouver Island,Comox Valley,North Vancouver Island,4,Coastal
+Port McNeill,Vancouver Island,Vancouver Island North,North Vancouver Island,1,Coastal
+Lions Bay,Vancouver Coastal,West Vancouver/Bowen Island,North Shore/Coast Garibaldi,4,Coastal
+Aldergrove,Fraser,Abbotsford,Fraser East,5,Coastal
+Port Alberni,Vancouver Island,Alberni/Clayoquot,Central Vancouver Island,4,Coastal
+Rosedale,Fraser,Chilliwack,Fraser East,5,Coastal
+Shawnigan - Mill Bay,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,Coastal
+Powell River,Vancouver Coastal,Powell River,North Shore/Coast Garibaldi,4,Coastal
+Prince Rupert,Northern,Prince Rupert,Northwest,1,Coastal
+Sechelt,Vancouver Coastal,Sunshine Coast,North Shore/Coast Garibaldi,4,Coastal
+Kitimat,Northern,Kitimat,Northwest,1,Coastal
+Whistler,Vancouver Coastal,Howe Sound,North Shore/Coast Garibaldi,4,Coastal
+Cultus Lake,Fraser,Chilliwack,Fraser East,5,Coastal
+Kent,Fraser,Agassiz/Harrison,Fraser East,5,Coastal
+Vancouver - Coastal,Vancouver Coastal,,,0,Coastal
+Vancouver - Inland,Fraser,,,0,Coastal
+Vancouver - NorthShore,Fraser,,,0,Coastal
+Logan Lake,Interior,Kamloops,Thompson Cariboo Shuswap,3,Dry Plateau
+Lumby,Interior,Vernon,Okanagan,3,Dry Plateau
+Grand Forks,Interior,Grand Forks,Kootenay Boundary,3,Dry Plateau
+Barriere,Interior,Kamloops,Thompson Cariboo Shuswap,3,Dry Plateau
+Armstrong,Interior,Armstrong/Spallumcheen,Okanagan,3,Dry Plateau
+Ashcroft,Interior,South Cariboo,Thompson Cariboo Shuswap,3,Dry Plateau
+Lillooet,Interior,Lillooet,Thompson Cariboo Shuswap,3,Dry Plateau
+Vernon,Interior,Vernon,Okanagan,3,Dry Plateau
+Chase,Interior,Kamloops,Thompson Cariboo Shuswap,3,Dry Plateau
+Merritt,Interior,Merritt,Thompson Cariboo Shuswap,3,Dry Plateau
+Summerland,Interior,Summerland,Okanagan,3,Dry Plateau
+Enderby,Interior,Enderby,Okanagan,3,Dry Plateau
+Naramata,Interior,Penticton,Okanagan,3,Dry Plateau
+Peachland,Interior,Central Okanagan,Okanagan,3,Dry Plateau
+Rayleigh,Interior,Kamloops,Thompson Cariboo Shuswap,3,Dry Plateau
+Penticton,Interior,Penticton,Okanagan,3,Dry Plateau
+Princeton,Interior,Princeton,Okanagan,3,Dry Plateau
+Duck Lake,Interior,Central Okanagan,Okanagan,3,Dry Plateau
+Kamloops,Interior,Kamloops,Thompson Cariboo Shuswap,3,Dry Plateau
+Kelowna,Interior,Central Okanagan,Okanagan,3,Dry Plateau
+Salmon Arm,Interior,Salmon Arm,Thompson Cariboo Shuswap,3,Dry Plateau
+Blind Bay,Interior,Salmon Arm,Thompson Cariboo Shuswap,3,Dry Plateau
+Mackenzie,Northern,Prince George,Northern Interior,2,Northern
+Dawson Creek,Northern,Peace River South,Northeast,2,Northern
+Quesnel,Northern,Quesnel,Northern Interior,2,Northern
+Fort Nelson,Northern,Fort Nelson,Northeast,2,Northern
+Fort St. James,Northern,Nechako,Northern Interior,2,Northern
+Fort St. John,Northern,Peace River North,Northeast,2,Northern
+Tumbler Ridge,Northern,Peace River South,Northeast,2,Northern
+Prince George,Northern,Prince George,Northern Interior,2,Northern
+Elkford,Interior,Fernie,East Kootenay,3,Mountain
+Salmo,Interior,Nelson,Kootenay Boundary,3,Mountain
+Golden,Interior,Golden,East Kootenay,3,Mountain
+Smithers,Northern,Smithers,Northwest,2,Mountain
+Sparwood,Interior,Fernie,East Kootenay,3,Mountain
+Trail - Fruitvale,Interior,Trail,Kootenay Boundary,3,Mountain
+Mile 108 Recreational Ranch,Interior,100 Mile House,Thompson Cariboo Shuswap,2,Mountain
+Burns Lake,Northern,Burns Lake,Northern Interior,2,Mountain
+Vanderhoof,Northern,Nechako,Northern Interior,2,Mountain
+Castlegar,Interior,Castlegar,Kootenay Boundary,3,Mountain
+Nakusp,Interior,Arrow Lakes,Kootenay Boundary,3,Mountain
+Nelson,Interior,Nelson,Kootenay Boundary,3,Mountain
+Williams Lake,Interior,Cariboo/Chilcotin,Thompson Cariboo Shuswap,2,Mountain
+One Hundred Mile House,Interior,100 Mile House,Thompson Cariboo Shuswap,2,Mountain
+Cranbrook,Interior,Cranbrook,East Kootenay,3,Mountain
+Creston,Interior,Creston,East Kootenay,3,Mountain
+Sicamous,Interior,Salmon Arm,Thompson Cariboo Shuswap,3,Mountain
+Houston,Northern,Smithers,Northwest,2,Mountain
+Revelstoke,Interior,Revelstoke,Thompson Cariboo Shuswap,3,Mountain
+Fernie,Interior,Fernie,East Kootenay,3,Mountain
+Rossland,Interior,Trail,Kootenay Boundary,3,Mountain
+Telkwa,Northern,Smithers,Northwest,2,Mountain
+Invermere,Interior,Windermere,East Kootenay,3,Mountain
+Kimberley,Interior,Kimberley,East Kootenay,3,Mountain
+Oliver,Interior,Southern Okanagan,Okanagan,3,Dry Plateau
+Okanagan Falls,Interior,Southern Okanagan,Okanagan,3,Dry Plateau
+Hope,Fraser,Hope,Fraser East,5,Mountain
+Keremeos,Interior,Keremeos,Okanagan,3,Dry Plateau
+Osoyoos,Interior,Southern Okanagan,Okanagan,3,Dry Plateau
+Tofino,Vancouver Island,Alberni/Clayoquot,Central Vancouver Island,4,Coastal

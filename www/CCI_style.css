@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab');
+@import url('https://fonts.googleapis.com/css2?family=Oswald');
+
+body {
+  background-color: #D0F4EA;
+  color: #545F66; /* text color */
+}
+
+
+h1 {
+  font-family: 'Montserrat', sans-serif;
+  color: #000000;
+  font-size: 500;
+}
+
+h2 {
+  font-family: 'Montserrat', sans-serif;
+  color: #545F66;
+  font-size: 75;
+
+}
+
+h3 {
+  font-family: 'Montserrat', sans-serif;
+  color: #b9c0c5;
+  font-weight: 10;
+}
+
+h4 {
+  font-family: 'Roboto Slab', sans-serif;
+  font-weight: 100;
+  color: #545F66;
+}
+
+h5 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 60;
+  color: #545F66;
+}
+
+h6 {
+  font-family: 'Montserrat', sans-serif;
+  color: #545F66;
+  font-size: 60;
+
+}
+
+
+
+/* Make text visible on inputs */
+.shiny-input-container {
+  color: #B1CC74;
+}

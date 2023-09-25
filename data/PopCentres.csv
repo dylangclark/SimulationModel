@@ -1,0 +1,111 @@
+PCNAME,PCUID,PCPUID,DGUID,PCTYPE,PCCLASS,LANDAREA,HA_ID,HA_Name,LHA_Name,HSDA_Name,Warning_Zone,Population,Percent of HA pop
+Abbotsford,1048,591048,2021S05101048,1,4,71.1956,2 FHA,Fraser,Abbotsford,Fraser East,5,132300,12.1%
+Aldergrove,1218,591218,2021S05101218,2,2,7.0289,2 FHA,Fraser,Abbotsford,Fraser East,5,13105,1.2%
+Aldergrove East,1408,591408,2021S05101408,2,2,2.5466,2 FHA,Fraser,Abbotsford,Fraser East,5,4496,0.4%
+Armstrong,20,590020,2021S05100020,4,2,5.2185,1 IHA,Interior,Armstrong/Spallumcheen,Okanagan,3,5323,0.9%
+Ashcroft,24,590024,2021S05100024,4,2,2.0456,1 IHA,Interior,South Cariboo,Thompson Cariboo Shuswap,3,1182,0.2%
+Barriere,1613,591613,2021S05101613,4,2,3.0894,1 IHA,Interior,Kamloops,Thompson Cariboo Shuswap,3,1273,0.2%
+Blind Bay,1350,591350,2021S05101350,4,2,4.1408,1 IHA,Interior,Salmon Arm,Thompson Cariboo Shuswap,3,2369,0.4%
+Burns Lake,110,590110,2021S05100110,4,2,3.1175,5 NHA,Northern,Burns Lake,Northern Interior,2,2117,1.3%
+Campbell River,119,590119,2021S05100119,1,3,33.0011,4 VIHA,Vancouver Island,Greater Campbell River,North Vancouver Island,4,38108,5.5%
+Castlegar,146,590146,2021S05100146,4,2,19.0062,1 IHA,Interior,Castlegar,Kootenay Boundary,3,10029,1.8%
+Chase,161,590161,2021S05100161,2,2,2.3332,1 IHA,Interior,Kamloops,Thompson Cariboo Shuswap,3,2377,0.4%
+Chemainus,169,590169,2021S05100169,2,2,5.8193,4 VIHA,Vancouver Island,Cowichan Valley North,Central Vancouver Island,4,4033,0.6%
+Chilliwack,177,590177,2021S05100177,1,3,56.0238,2 FHA,Fraser,Chilliwack,Fraser East,5,81622,7.5%
+Cobble Hill,1557,591557,2021S05101557,4,2,6.6728,4 VIHA,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,3610,0.5%
+Courtenay,207,590207,2021S05100207,1,3,56.5796,4 VIHA,Vancouver Island,Comox Valley,North Vancouver Island,4,48917,7.1%
+Cowichan Bay,1410,591410,2021S05101410,2,2,4.4678,4 VIHA,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,2799,0.4%
+Cranbrook,210,590210,2021S05100210,1,2,16.323,1 IHA,Interior,Cranbrook,East Kootenay,3,20008,3.5%
+Creston,212,590212,2021S05100212,4,2,6.0392,1 IHA,Interior,Creston,East Kootenay,3,5459,1.0%
+Crofton,1375,591375,2021S05101375,2,2,2.7596,4 VIHA,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,1446,0.2%
+Cultus Lake,1314,591314,2021S05101314,2,2,1.7977,2 FHA,Fraser,Chilliwack,Fraser East,5,1164,0.1%
+Cumberland,213,590213,2021S05100213,2,2,3.9121,4 VIHA,Vancouver Island,Comox Valley,North Vancouver Island,4,4190,0.6%
+Dawson Creek,217,590217,2021S05100217,1,2,12.3425,5 NHA,Northern,Peace River South,Northeast,2,11706,7.0%
+Duck Lake,1262,591262,2021S05101262,2,2,24.9263,1 IHA,Interior,Central Okanagan,Okanagan,3,12725,2.2%
+Duncan,243,590243,2021S05100243,1,2,22.7484,4 VIHA,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,24358,3.5%
+Elkford,1143,591143,2021S05101143,4,2,3.0666,1 IHA,Interior,Fernie,East Kootenay,3,1908,0.3%
+Enderby,262,590262,2021S05100262,4,2,4.2626,1 IHA,Interior,Enderby,Okanagan,3,3028,0.5%
+Fairwinds,1556,591556,2021S05101556,4,2,2.1287,4 VIHA,Vancouver Island,Oceanside,Central Vancouver Island,4,1207,0.2%
+Fernie,280,590280,2021S05100280,4,2,4.4928,1 IHA,Interior,Fernie,East Kootenay,3,5519,1.0%
+Fort Nelson,293,590293,2021S05100293,4,2,5.0218,5 NHA,Northern,Fort Nelson,Northeast,2,2611,1.6%
+Fort St. James,297,590297,2021S05100297,4,2,3.2152,5 NHA,Northern,Nechako,Northern Interior,2,1497,0.9%
+Fort St. John,298,590298,2021S05100298,1,2,14.8863,5 NHA,Northern,Peace River North,Northeast,2,21123,12.6%
+Gibsons,316,590316,2021S05100316,4,2,14.1145,3 VCHA,Vancouver Coastal,Sunshine Coast,North Shore/Coast Garibaldi,4,9603,1.3%
+Golden,326,590326,2021S05100326,4,2,6.1195,1 IHA,Interior,Golden,East Kootenay,3,3640,0.6%
+Grand Forks,333,590333,2021S05100333,4,2,8.2053,1 IHA,Interior,Grand Forks,Kootenay Boundary,3,4166,0.7%
+Harrison Hot Springs,1377,591377,2021S05101377,2,2,1.1678,2 FHA,Fraser,Agassiz/Harrison,Fraser East,5,1552,0.1%
+Hope,376,590376,2021S05100376,4,2,5.4786,2 FHA,Fraser,Hope,Fraser East,5,4434,0.4%
+Houston,1221,591221,2021S05101221,4,2,2.9443,5 NHA,Northern,Smithers,Northwest,2,2085,1.2%
+Invermere,389,590389,2021S05100389,4,2,3.4384,1 IHA,Interior,Windermere,East Kootenay,3,3340,0.6%
+Kamloops,397,590397,2021S05100397,1,3,74.3533,1 IHA,Interior,Kamloops,Thompson Cariboo Shuswap,3,92442,16.2%
+Kelowna,403,590403,2021S05100403,1,4,168.9222,1 IHA,Interior,Central Okanagan,Okanagan,3,181380,31.9%
+Kent,1325,591325,2021S05101325,2,2,4.0245,2 FHA,Fraser,Agassiz/Harrison,Fraser East,5,3936,0.4%
+Keremeos,1558,591558,2021S05101558,4,2,2.8449,1 IHA,Interior,Keremeos,Okanagan,3,1791,0.3%
+Kimberley,411,590411,2021S05100411,4,2,4.5126,1 IHA,Interior,Kimberley,East Kootenay,3,4908,0.9%
+Kitimat,420,590420,2021S05100420,4,2,4.8834,5 NHA,Northern,Kitimat,Northwest,1,6727,4.0%
+Ladner,1559,591559,2021S05101559,2,2,7.3762,2 FHA,Fraser,Delta,Fraser South,4,23016,2.1%
+Ladysmith,447,590447,2021S05100447,1,2,13.8502,4 VIHA,Vancouver Island,Cowichan Valley North,Central Vancouver Island,4,11194,1.6%
+Lake Cowichan,449,590449,2021S05100449,4,2,4.139,4 VIHA,Vancouver Island,Cowichan Valley West,Central Vancouver Island,4,3181,0.5%
+Lillooet,470,590470,2021S05100470,4,2,2.3713,1 IHA,Interior,Lillooet,Thompson Cariboo Shuswap,3,1652,0.3%
+Lions Bay,1217,591217,2021S05101217,2,2,2.532,3 VCHA,Vancouver Coastal,West Vancouver/Bowen Island,North Shore/Coast Garibaldi,4,1390,0.2%
+Logan Lake,1144,591144,2021S05101144,2,2,0.9407,1 IHA,Interior,Kamloops,Thompson Cariboo Shuswap,3,1356,0.2%
+Lumby,1175,591175,2021S05101175,4,2,1.1426,1 IHA,Interior,Vernon,Okanagan,3,1484,0.3%
+Mackenzie,493,590493,2021S05100493,4,2,3.4274,5 NHA,Northern,Prince George,Northern Interior,2,2856,1.7%
+Merritt,529,590529,2021S05100529,4,2,4.4286,1 IHA,Interior,Merritt,Thompson Cariboo Shuswap,3,5248,0.9%
+Mile 108 Recreational Ranch,1614,591614,2021S05101614,4,2,2.5888,1 IHA,Interior,100 Mile House,Thompson Cariboo Shuswap,2,1043,0.2%
+Miller's Landing,1409,591409,2021S05101409,2,2,1.9144,3 VCHA,Vancouver Coastal,West Vancouver/Bowen Island,North Shore/Coast Garibaldi,4,1437,0.2%
+Mission,1560,591560,2021S05101560,6,3,27.2348,2 FHA,Fraser,Abbotsford,Fraser East,5,36193,3.3%
+Nakusp,567,590567,2021S05100567,4,2,1.3144,1 IHA,Interior,Arrow Lakes,Kootenay Boundary,3,1112,0.2%
+Nanaimo,568,590568,2021S05100568,1,4,86.7611,4 VIHA,Vancouver Island,Greater Nanaimo,Central Vancouver Island,4,106079,15.3%
+Naramata,1561,591561,2021S05101561,4,2,2.3924,1 IHA,Interior,Penticton,Okanagan,3,1012,0.2%
+Nelson,574,590574,2021S05100574,1,2,7.4468,1 IHA,Interior,Nelson,Kootenay Boundary,3,11198,2.0%
+Okanagan Falls,1562,591562,2021S05101562,2,2,3.3336,1 IHA,Interior,Southern Okanagan,Okanagan,3,2202,0.4%
+Oliver,608,590608,2021S05100608,4,2,5.6677,1 IHA,Interior,Southern Okanagan,Okanagan,3,5708,1.0%
+One Hundred Mile House,1047,591047,2021S05101047,4,2,2.4023,1 IHA,Interior,100 Mile House,Thompson Cariboo Shuswap,2,1706,0.3%
+Osoyoos,615,590615,2021S05100615,4,2,4.2356,1 IHA,Interior,Southern Okanagan,Okanagan,3,4859,0.9%
+Parksville,626,590626,2021S05100626,1,2,27.4486,4 VIHA,Vancouver Island,Oceanside,Central Vancouver Island,4,27330,4.0%
+Peachland,1563,591563,2021S05101563,2,2,9.8262,1 IHA,Interior,Central Okanagan,Okanagan,3,5006,0.9%
+Pemberton,1351,591351,2021S05101351,4,2,2.8236,3 VCHA,Vancouver Coastal,Howe Sound,North Shore/Coast Garibaldi,4,2970,0.4%
+Penticton,632,590632,2021S05100632,1,3,25.8404,1 IHA,Interior,Penticton,Okanagan,3,36893,6.5%
+Port Alberni,654,590654,2021S05100654,1,2,28.4917,4 VIHA,Vancouver Island,Alberni/Clayoquot,Central Vancouver Island,4,21711,3.1%
+Port Hardy,1087,591087,2021S05101087,4,2,5.1467,4 VIHA,Vancouver Island,Vancouver Island North,North Vancouver Island,1,3393,0.5%
+Port McNeill,1190,591190,2021S05101190,4,2,2.4862,4 VIHA,Vancouver Island,Vancouver Island North,North Vancouver Island,1,2234,0.3%
+Powell River,673,590673,2021S05100673,1,2,17.3677,3 VCHA,Vancouver Coastal,Powell River,North Shore/Coast Garibaldi,4,13116,1.7%
+Prince George,679,590679,2021S05100679,1,3,73.8989,5 NHA,Northern,Prince George,Northern Interior,2,67339,40.2%
+Prince Rupert,680,590680,2021S05100680,1,2,7.9699,5 NHA,Northern,Prince Rupert,Northwest,1,11814,7.0%
+Princeton,681,590681,2021S05100681,4,2,4.4771,1 IHA,Interior,Princeton,Okanagan,3,2826,0.5%
+Puntledge,1564,591564,2021S05101564,4,2,2.9461,4 VIHA,Vancouver Island,Comox Valley,North Vancouver Island,4,1185,0.2%
+Quesnel,687,590687,2021S05100687,1,2,25.2278,5 NHA,Northern,Quesnel,Northern Interior,2,12110,7.2%
+Rayleigh,1565,591565,2021S05101565,2,2,2.057,1 IHA,Interior,Kamloops,Thompson Cariboo Shuswap,3,1933,0.3%
+Revelstoke,700,590700,2021S05100700,4,2,12.2953,1 IHA,Interior,Revelstoke,Thompson Cariboo Shuswap,3,7709,1.4%
+Roberts Creek,1376,591376,2021S05101376,4,2,4.1848,3 VCHA,Vancouver Coastal,Sunshine Coast,North Shore/Coast Garibaldi,4,1927,0.3%
+Rosedale,1566,591566,2021S05101566,2,2,4.3872,2 FHA,Fraser,Chilliwack,Fraser East,5,2232,0.2%
+Rossland,1257,591257,2021S05101257,4,2,4.0055,1 IHA,Interior,Trail,Kootenay Boundary,3,3645,0.6%
+Salmo,1171,591171,2021S05101171,4,2,2.4442,1 IHA,Interior,Nelson,Kootenay Boundary,3,1140,0.2%
+Salmon Arm,736,590736,2021S05100736,1,2,20.989,1 IHA,Interior,Salmon Arm,Thompson Cariboo Shuswap,3,16065,2.8%
+Sechelt,1300,591300,2021S05101300,4,2,11.9604,3 VCHA,Vancouver Coastal,Sunshine Coast,North Shore/Coast Garibaldi,4,9434,1.2%
+Shawnigan - Mill Bay,1567,591567,2021S05101567,4,2,14.8683,4 VIHA,Vancouver Island,Cowichan Valley South,Central Vancouver Island,4,7285,1.1%
+Sicamous,1219,591219,2021S05101219,4,2,2.6314,1 IHA,Interior,Salmon Arm,Thompson Cariboo Shuswap,3,2041,0.4%
+Smithers,765,590765,2021S05100765,4,2,10.4645,5 NHA,Northern,Smithers,Northwest,2,5316,3.2%
+Sooke,1098,591098,2021S05101098,2,2,15.2988,4 VIHA,Vancouver Island,Western Communities,South Vancouver Island,4,11583,1.7%
+Sparwood,776,590776,2021S05100776,4,2,8.6087,1 IHA,Interior,Fernie,East Kootenay,3,3990,0.7%
+Squamish,781,590781,2021S05100781,1,2,22.1061,3 VCHA,Vancouver Coastal,Howe Sound,North Shore/Coast Garibaldi,4,22221,2.9%
+Summerland,1117,591117,2021S05101117,4,2,15.8259,1 IHA,Interior,Summerland,Okanagan,3,9860,1.7%
+Telkwa,1568,591568,2021S05101568,4,2,2.8621,5 NHA,Northern,Smithers,Northwest,2,1288,0.8%
+Terrace,922,590922,2021S05100922,1,2,22.1869,5 NHA,Northern,Terrace,Northwest,1,14633,8.7%
+Tofino,1615,591615,2021S05101615,4,2,5.4743,4 VIHA,Vancouver Island,Alberni/Clayoquot,Central Vancouver Island,4,2217,0.3%
+Trail - Fruitvale,1569,591569,2021S05101569,1,2,21.6528,1 IHA,Interior,Trail,Kootenay Boundary,3,12863,2.3%
+Tsawwassen,1570,591570,2021S05101570,2,2,14.9525,2 FHA,Fraser,Delta,Fraser South,5,23940,2.2%
+Tumbler Ridge,1240,591240,2021S05101240,4,2,2.9483,5 NHA,Northern,Peace River South,Northeast,2,2389,1.4%
+Ucluelet,959,590959,2021S05100959,4,2,2.8951,4 VIHA,Vancouver Island,Alberni/Clayoquot,Central Vancouver Island,4,1940,0.3%
+Vancouver - Coastal,,,,2,2,,4 VIHA,Vancouver Coastal,Vancouver,Vancouver,4,583740,76.8%
+Vancouver - NorthShore,,,,1,4,,4 VIHA,Vancouver Coastal,Vancouver,Vancouver,4,103130,13.6%
+Vancouver - Inland,,,,,,,2 FHA,Fraser,Fraser,Fraser South,5,656565,60.0%
+Vanderhoof,974,590974,2021S05100974,4,2,2.8452,5 NHA,Northern,Nechako,Northern Interior,2,1967,1.2%
+Vernon,983,590983,2021S05100983,1,3,51.1645,1 IHA,Interior,Vernon,Okanagan,3,51896,9.1%
+Victoria,984,590984,2021S05100984,1,4,222.7074,4 VIHA,Vancouver Island,Greater Victoria,South Vancouver Island,4,363222,52.5%
+Welcome Beach,1424,591424,2021S05101424,4,2,1.4073,3 VCHA,Vancouver Coastal,Sunshine Coast,North Shore/Coast Garibaldi,4,1116,0.1%
+Whistler,1309,591309,2021S05101309,4,2,11.7412,3 VCHA,Vancouver Coastal,Howe Sound,North Shore/Coast Garibaldi,4,9974,1.3%
+White Rock,1021,591021,2021S05101021,6,4,54.2278,2 FHA,Fraser,Surrey,Fraser South,5,109167,10.0%
+Williams Lake,1028,591028,2021S05101028,1,2,27.6857,1 IHA,Interior,Cariboo/Chilcotin,Thompson Cariboo Shuswap,2,11906,2.1%
+Yarrow,1616,591616,2021S05101616,2,2,3.3734,2 FHA,Fraser,Chilliwack,Fraser East,5,1378,0.1%
