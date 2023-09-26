@@ -135,6 +135,8 @@ shinyUI(
           br(),
           uiOutput("inResource"),
           br(),br(),
+          reactableOutput("TableKPI"),
+          br(),br(),
           shinycssloaders::withSpinner(
             plotOutput("Simmer2",width="100%"), color="#545F66"),
           br(),br(),

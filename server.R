@@ -36,6 +36,7 @@ library(stringr)
 library(rgdal)
 library(cowplot)
 library(DT)
+library(janitor)
 
 library(simmer)
 library(simmer.plot)
@@ -342,18 +343,7 @@ shinyServer(function(input, output,session) {
                         ## 2.18 deaths per 100,000 per day * 57.1% in hospital - is equal to (2.18*0.571/21) - multiple this by the number of deaths that EHS treats
                         probdeathAll_EMS<-(PopSize*0.05927524*0.5)
                         
-                        # Hospital stay distribution
-                        #tEDstay<-reactive(input$EDstay)
-                        #tMedstay<-reactive(input$Medstay)
-                        #tICUstay<-reactive(input$ICUstay)
-                        #tPostICUMedstay<-reactive(input$PostICUstay)
-                        
-                        #tEDstay<-tEDstay()
-                        #tMedstay<-tMedstay()
-                        #tICUstay<-tICUstay()
-                        #tICUstay<-tICUstay*60*24
-                        #tPostICUMedstay<-tPostICUMedstay()
-
+                       
                         
                         #Prehospital response timing 
                         tAmbulanceResponse<-reactive(input$AmbRespT)
@@ -938,7 +928,8 @@ shinyServer(function(input, output,session) {
                         
                         # MCI protocol on (automatic) or off
                         set_attribute(keys="SALT?", values=function()ifelse(MCI==1 & (get_queue_count(env,"ED bed")/get_capacity(env,"ED bed"))>.9,1,0)) %>%
-                        
+                        set_attribute(keys="Hour_of_day",values=function() floor((now(env) %% 1440)/60)) %>%
+
                         
                         #set non-heatwave attribute
                         set_attribute(keys="Heatwave patient", values=1)%>%
@@ -989,6 +980,7 @@ shinyServer(function(input, output,session) {
                       HW_EMSPatient<-trajectory() %>%
                         # MCI protocol on (automatic) or off
                         set_attribute(keys="SALT?", values=function()ifelse(MCI==1 & (get_queue_count(env,"Ambulance")/get_capacity(env,"Ambulance"))>0.1,1,0)) %>%
+                        set_attribute(keys="Hour_of_day",values=function() floor((now(env) %% 1440)/60)) %>%
                         
                         #set non-heatwave attribute
                         set_attribute(keys="Heatwave patient", values=1)%>%
@@ -1054,10 +1046,11 @@ shinyServer(function(input, output,session) {
                         # MCI protocol on (automatic) or off
                         set_global(keys="MCI switch", values=MCI) %>%
                         set_attribute(keys="SALT?", values=0) %>%
-                      
+                        set_attribute(keys="Hour_of_day",values=function() floor((now(env) %% 1440)/60)) %>%
                         
                         #set non-heatwave attribute
                         set_attribute(keys="Heatwave patient", values=0)%>%
+                        
                         
                         #set arrival attribute (by walk in =0 or by ambulance =1)
                         set_attribute(keys="mode of arrival", values=0)%>%
@@ -1109,6 +1102,7 @@ shinyServer(function(input, output,session) {
                         # MCI protocol on (automatic) or off
                         set_global(keys="MCI switch", values=MCI) %>%
                         set_attribute(keys="SALT?", values=0) %>%
+                        set_attribute(keys="Hour_of_day",values=function() floor((now(env) %% 1440)/60)) %>%
                         
                         #set non-heatwave attribute
                         set_attribute(keys="Heatwave patient", values=0)%>%
@@ -1383,6 +1377,60 @@ shinyServer(function(input, output,session) {
     
   })
   
+  output$TableKPI<-renderReactable({
+      req(Hmodel)
+      req(input$iterations)
+      nI<-input$iterations
+    
+      Log1<-get_mon_arrivals(Hmodel())
+      Log2<-as.data.frame(get_mon_attributes(Hmodel()))
+      Log2<-Log2[,2:5]
+      colnames(Log2)<-c("name","key","value","replication")
+      Log2$value<-as.numeric(Log2$value)
+      Log2<-reshape2::dcast(Log2,name+replication~key,mean,fill=NaN)
+      Log<-merge(Log1,Log2,by=c("name","replication"))
+  
+      df<-Log%>%
+        arrange(start_time)
+      
+          for(i in (1:nrow(df))){
+              st<-df[i,3]
+            if(i!=1){last<-df[(i-1),3]}else{last<-0}
+            if(exists("tsince")){
+              tsince<-c(tsince,(st-last)*nI)
+            }else{
+              tsince<-(st-last)*nI
+              }
+            }
+      df$TimeSinceLastPt<-tsince
+      df<-df[,c(3,8,11,25,26,32,38,39,40,48,49)]
+      
+      df_base<-df %>%
+        filter(start_time < 18720)
+      df_base<-as.data.frame(colMeans(df_base,na.rm = T))
+      
+      df_HW<-df %>%
+        filter(start_time > 18720 & start_time < 28800)
+      df_HW<-as.data.frame(colMeans(df_HW,na.rm = T))
+      
+      DF<-cbind(df_base,df_HW)
+      
+      DF<-DF%>%
+      dplyr::mutate_if(is.numeric, round, digits=2)
+      
+      DF<-DF[-1,]
+      colnames(DF)<-c("Baseline period mean (day 1 to 14)","Heatwave period mean (day 14 to 20)")
+      rownames(DF)<-c("Mean ALC time (minutes)","Mean ambulance response time (minutes)","Mean ED boarding time for ICU pts (minutes)","Mean ED boarding time for non-ICU pts (minutes)","Ratio of heatwave to non-heatwave pts","Ratio of pts who die","Mean ICU LOS (minutes)","Mean non-ICU ward LOS (minutes)","Mean triage wait time (minutes)","Mean time between patients (minutes)")
+  
+  reactable(DF,
+            theme=reactableTheme(style=list(fontFamily="Montserrat,sans-serif")),
+            fullWidth = T,
+            defaultColDef = colDef(align="left", headerStyle=list(background="#b4cbce"),minWidth = 200),
+            bordered=F, striped = T, highlight=T,showSortable = T,
+            minRows = 1, showPageSizeOptions = T,defaultPageSize=20
+            )
+
+  })
   
   output$Simmer2<-renderPlot({
     req(Hmodel)
@@ -1557,6 +1605,7 @@ shinyServer(function(input, output,session) {
   
 
   output$TableText<-renderReactable({
+    req(Hmodel)
     Log1<-get_mon_arrivals(Hmodel())
     Log2<-as.data.frame(get_mon_attributes(Hmodel()))
     Log2<-Log2[,2:5]
@@ -1571,7 +1620,7 @@ shinyServer(function(input, output,session) {
               defaultColDef = colDef(align="left", headerStyle=list(background="#b4cbce"),minWidth = 200,filterable=T),
               
               bordered=F, striped = T, highlight=T,showSortable = T,
-              minRows = 1, showPageSizeOptions = T, pageSizeOptions = c(10,20,50),defaultPageSize=20)
+              minRows = 1, showPageSizeOptions = T, pageSizeOptions = c(10,20,50),defaultPageSize=10)
     
   })
   
@@ -1589,6 +1638,24 @@ shinyServer(function(input, output,session) {
             Log<-merge(Log1,Log2,by=c("name","replication"))
       write.csv(Log,file)
     })
+  
+  #Distribution panels
+  
+  #Triage score & deaths
+  
+  #Triage time by triage level
+  
+  #Ambulance response time by triage level
+  
+  #Time in ED by triage score
+  
+  #Time in ICU
+  
+  #Time in non-ICU ward
+  
+  #Time between patients by time of day
+  
+  
   #END server
   
 })
