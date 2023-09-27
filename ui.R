@@ -152,6 +152,19 @@ shinyUI(
           shinycssloaders::withSpinner(
             plotOutput("Simmer5",height="1000px",width="100%"), color="#545F66"),
           br(),br(),
+          hr(),
+          h3("Advanced Results",align="center"),
+          hr(),
+          br(),
+          shinycssloaders::withSpinner(
+            plotOutput("Dist1",height="400px",width="100%"), color="#545F66"),
+          br(),
+          shinycssloaders::withSpinner(
+            plotOutput("Dist2",height="400px",width="100%"), color="#545F66"),
+          br(),
+          shinycssloaders::withSpinner(
+            plotOutput("Dist3",height="400px",width="100%"), color="#545F66"),
+          br(),
           reactableOutput("TableText"),
           br(),
           downloadButton("downloadTable","Download this data as a .csv",style="background-color:#F5FBFA;margin:25px 5px 15px 5px;"),

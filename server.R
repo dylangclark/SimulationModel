@@ -1333,7 +1333,7 @@ shinyServer(function(input, output,session) {
         
             
             sim_out<-env%>%
-              simmer::run(nRunDays*1400)
+              simmer::run(nRunDays*1440)
                    
             wrap(sim_out)
             
@@ -1602,19 +1602,12 @@ shinyServer(function(input, output,session) {
       theme(legend.position = "bottom")
     
   })
-  
 
   output$TableText<-renderReactable({
-    req(Hmodel)
-    Log1<-get_mon_arrivals(Hmodel())
-    Log2<-as.data.frame(get_mon_attributes(Hmodel()))
-    Log2<-Log2[,2:5]
-    colnames(Log2)<-c("name","key","value","replication")
-    Log2$value<-as.numeric(Log2$value)
-    Log2<-reshape2::dcast(Log2,name+replication~key,mean,fill=NaN)
-    Log<-merge(Log1,Log2,by=c("name","replication"))
+    req(DF_Dist)
+    df<-DF_Dist()
     
-    reactable(as.data.frame(Log),
+    reactable(as.data.frame(df),
               theme=reactableTheme(style=list(fontFamily="Montserrat,sans-serif")),
               fullWidth = T,
               defaultColDef = colDef(align="left", headerStyle=list(background="#b4cbce"),minWidth = 200,filterable=T),
@@ -1639,13 +1632,208 @@ shinyServer(function(input, output,session) {
       write.csv(Log,file)
     })
   
-  #Distribution panels
+#### Distribution panels
+      DF_Dist<-reactive({
+    req(Hmodel)
+    Log1<-get_mon_arrivals(Hmodel())
+    Log2<-as.data.frame(get_mon_attributes(Hmodel()))
+    Log2<-Log2[,2:5]
+    colnames(Log2)<-c("name","key","value","replication")
+    Log2$value<-as.numeric(Log2$value)
+    Log2<-reshape2::dcast(Log2,name+replication~key,mean,fill=NaN)
+    Log<-merge(Log1,Log2,by=c("name","replication"))
+    janitor::clean_names(Log)
+
+  })
   
   #Triage score & deaths
+      output$Dist1<-renderPlot({
+        req(DF_Dist)
+        df<-DF_Dist()
+        
+        #simulation period
+        for(i in (1:nrow(df))){
+          actTime<-df[i,3]
+          if(actTime<18720){v<-"baseline"}else if(actTime>18720 & actTime<28800){v<-"heatwave"}else{v<-"post_heatwave"}
+          if(exists("vec")){
+            vec<-c(vec,v)
+          }else{
+            vec<-v
+          }
+        }
+        df$simulation_period<-vec
+        
+        heatwave_non<-c(
+          'baseline' = "Baseline period",
+          'heatwave' = "Heatwave period",
+          'post_heatwave'="Post heatwave")
+        
+        ggplot(df, aes(x=triage_score, fill=simulation_period))+
+          geom_histogram()+
+          facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
+          xlab("Triage score") +
+          ylab("Count of patients")+
+          labs(title="Distribution of CTAS Triage Scores")+
+          theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+          theme(plot.background = element_rect(fill = "#F5FBFA")) +
+          theme(panel.background = element_rect(fill = "#F5FBFA")) +
+          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                plot.title.position = "plot") +
+          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                plot.caption.position = "plot") +
+          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+          theme(axis.text = element_text(size = 10)) +
+          theme(panel.grid.minor.x = element_blank()) +
+          theme(axis.line.x = element_line(colour = "#545F66")) +
+          theme(axis.line.y = element_blank()) +
+          theme(axis.ticks = element_blank()) +
+          theme(legend.position = "none")+
+          theme(strip.background = element_blank())
+    
+      })
   
   #Triage time by triage level
-  
+      output$Dist2<-renderPlot({
+        req(DF_Dist)
+        df<-DF_Dist()
+      ####
+        # Edits to df ####
+        df$ed_admit_time<-as.numeric(df$ed_admit_time)
+        df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
+        df<-df %>%
+          mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
+        
+        df<-df %>%
+          mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
+        
+        #simulation period
+        for(i in (1:nrow(df))){
+          actTime<-df[i,3]
+          if(actTime<18720){v<-"baseline"}else if(actTime>18720 & actTime<28800){v<-"heatwave"}else{v<-"post_heatwave"}
+          if(exists("vec")){
+            vec<-c(vec,v)
+          }else{
+            vec<-v
+          }
+        }
+        df$simulation_period<-vec
+        
+        #ward status
+        for(i in (1:nrow(df))){
+          if(!is.na(df[i,34])){ws<-"ICU"
+          }else if(!is.na(df[i,37])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
+          if(exists("vec2")){
+            vec2<-c(vec2,ws)
+          }else{
+            vec2<-ws
+          }
+        }
+        df$ward_status<-as.factor(vec2)
+      #####
+      
+        heatwave_non<-c(
+          'baseline' = "Baseline period",
+          'heatwave' = "Heatwave period",
+          'post_heatwave'="Post heatwave")
+        
+        ggplot(df, aes(x=triage_score, y=time_in_ed_all))+
+          geom_jitter(aes(color=ward_status))+
+          facet_wrap(~factor(simulation_period),scales = "fixed",labeller=as_labeller(heatwave_non))+
+          xlab("Triage score") +
+          ylab("Time in ED (minutes)")+
+          labs(title="Distribution of time in ED by triage scores and ward admission status")+
+          theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+          theme(plot.background = element_rect(fill = "#F5FBFA")) +
+          theme(panel.background = element_rect(fill = "#F5FBFA")) +
+          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                plot.title.position = "plot") +
+          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                plot.caption.position = "plot") +
+          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+          theme(axis.text = element_text(size = 10)) +
+          theme(panel.grid.minor.x = element_blank()) +
+          theme(axis.line.x = element_line(colour = "#545F66")) +
+          theme(axis.line.y = element_blank()) +
+          theme(axis.ticks = element_blank()) +
+          theme(legend.position = "right")+
+          theme(strip.background = element_blank())
+        
+      })
+      
   #Ambulance response time by triage level
+      output$Dist3<-renderPlot({
+    req(DF_Dist)
+    df<-DF_Dist()
+    ####
+    # Edits to df ####
+    df$ed_admit_time<-as.numeric(df$ed_admit_time)
+    df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
+    df<-df %>%
+      mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
+    
+    df<-df %>%
+      mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
+    
+    #simulation period
+    for(i in (1:nrow(df))){
+      actTime<-df[i,3]
+      if(actTime<18720){v<-"baseline"}else if(actTime>18720 & actTime<28800){v<-"heatwave"}else{v<-"post_heatwave"}
+      if(exists("vec")){
+        vec<-c(vec,v)
+      }else{
+        vec<-v
+      }
+    }
+    df$simulation_period<-vec
+    
+    #ward status
+    for(i in (1:nrow(df))){
+      if(!is.na(df[i,34])){ws<-"ICU"
+      }else if(!is.na(df[i,37])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
+      if(exists("vec2")){
+        vec2<-c(vec2,ws)
+      }else{
+        vec2<-ws
+      }
+    }
+    df$ward_status<-as.factor(vec2)
+    #####
+    
+    heatwave_non<-c(
+      'baseline' = "Baseline period",
+      'heatwave' = "Heatwave period",
+      'post_heatwave'="Post heatwave")
+    
+    ggplot(df, aes(x=as.factor(triage_score),y=ambulance_response_time))+
+      geom_jitter(aes())+
+      facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
+      xlab("Triage score") +
+      ylab("Ambulance response time (minutes)")+
+      labs(title="Distribution of ambulance response time by triage score and simulation period")+
+      theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+      theme(plot.background = element_rect(fill = "#F5FBFA")) +
+      theme(panel.background = element_rect(fill = "#F5FBFA")) +
+      theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+      theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+            plot.title.position = "plot") +
+      theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+      theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+            plot.caption.position = "plot") +
+      theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+      theme(axis.text = element_text(size = 10)) +
+      theme(panel.grid.minor.x = element_blank()) +
+      theme(axis.line.x = element_line(colour = "#545F66")) +
+      theme(axis.line.y = element_blank()) +
+      theme(axis.ticks = element_blank()) +
+      theme(legend.position = "right")+
+      theme(strip.background = element_blank())
+    
+  })
+  
   
   #Time in ED by triage score
   
