@@ -74,7 +74,6 @@ shinyUI(
                uiOutput("IHA",width="200px"),
                br(),
                uiOutput("IHWInput",width="200px"),
-               uiOutput("IHWUpload",width="300px"),
                br(),
                numericInput(inputId = "iterations",label="Number of model runs (Monte Carlo)",value=5,width="200px"),
                numericInput(inputId = "RunTime", label="Number of days to run model for", value = 35, width="200px"),
@@ -164,6 +163,9 @@ shinyUI(
           br(),
           shinycssloaders::withSpinner(
             plotOutput("Dist3",height="400px",width="100%"), color="#545F66"),
+          br(),
+          shinycssloaders::withSpinner(
+            plotOutput("Dist4",height="400px",width="100%"), color="#545F66"),
           br(),
           reactableOutput("TableText"),
           br(),

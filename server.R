@@ -6,16 +6,16 @@
 
 library(shiny)
 library(chron)
-library(lubridate)
-library(timeSeries)
-library(timeDate)
-library(tseries)
+#library(lubridate)
+#library(timeSeries)
+#library(timeDate)
+#library(tseries)
 library(zyp)
 library(ggplot2)
 library(data.table)
 library(plyr)
 library(dplyr)
-library(zoo)
+#library(zoo)
 library(shinycssloaders)
 library(shinydashboard)
 library(extrafont)
@@ -35,7 +35,7 @@ library(viridis)
 library(stringr)
 library(rgdal)
 library(cowplot)
-library(DT)
+#library(DT)
 library(janitor)
 
 library(simmer)
@@ -62,7 +62,6 @@ levelOrderDecade<-(c(2020:2090))
 GeoS<-c("Population centres","Health regions","Province")
 Sectors<-c("Health system", "Infrastructure","Food","Labour")
 
-warningCriteria<-read.csv("data/WarningCriteria.csv",header=T)
 PC<-read.csv("data/PopCentres.csv", header=T)
 PopC<-as.list(unique(PC$PCNAME))
 HR<-as.list(unique(PC$HA_Name))
@@ -97,11 +96,8 @@ shinyServer(function(input, output,session) {
   })
   
     output$IHA<-renderUI({radioButtons(inputId = "HA",label="Select which health authority this is for",choices=(c("Vancouver Coastal Health"=0,"Vancouver Island Health" = 1,"Fraser Health"=2,"Interior Health"=3,"Northern Health"=4)),inline=F)})
-    output$IHWInput<-renderUI({radioButtons(inputId = "HWInput",label="Select how you want to model a heatwave",choices=(c("No heatwaves"=0,"Default heatwave (2021 event) *use this for historic run*" = 1,"Upload a timeseries"=2)),selected=1,inline=F)})
-    output$IHWUpload<-renderUI({
-            req(input$HWInput)
-            if(input$HWInput==2){fileInput(inputId ="HWTimeline",label="Upload heatwave timeseries csv",multiple = F,accept=".csv")
-              }else{}})
+    output$IHWInput<-renderUI({radioButtons(inputId = "HWInput",label="Select how you want to model a heatwave",choices=(c("No heatwaves"=0,"Default heatwave (2021 event) *use this for historic run*" = 1)),selected=1,inline=F)})
+
   
     output$InEDBeds<-renderUI({numericInput(inputId = "nEDBeds",label="Number of ED beds",value=ifelse(input$CatchmentPop==50,14,ifelse(input$CatchmentPop==200,58,ifelse(input$CatchmentPop==100,30,(ceiling(input$CatchmentPop*0.32))))))})
     output$InEDNurse<-renderUI({numericInput(inputId = "nEDNurse",label="Number of ED nurses",value=ifelse(input$CatchmentPop==100,6,ifelse(input$CatchmentPop==200,14,(round(input$CatchmentPop*0.08,0)))))})
@@ -131,21 +127,8 @@ shinyServer(function(input, output,session) {
   #####
   ################################# Health simulator and graphics
   #####
-    UploadHW<-reactive({
-      req(input$HWInput)
-      req(input$HWTimeline)
-      if(input$HWInput==2){
-        f<-input$HWTimeline
-        ext<-tools::file_ext(f$datapath)
-        req(f)
-        validate(need(ext=="csv","Please upload a csv file"))
-        
-        UploadHW<-read.csv(f$datapath)
-      }else{UploadHW<-NULL}
-    })  
     
     DefaultHW<-read.csv("data/DefaultHeatwave.csv",header=T)
-    
     
     DHW<-reactive({
       req(input$HWInput)
@@ -239,23 +222,22 @@ shinyServer(function(input, output,session) {
      
   Hmodel<<-eventReactive(input$RunHModel,{
     
-      
+    #select how many simulation runs (monte carlos) to run
           nIterations<-reactive(input$iterations)
-              
+     
+    #create simulation environment         
           env<-mclapply(1:nIterations(),function(i){
-            #library(simmer)
-            #library(shiny)
 
                 env<-simmer()
                   
         
-                ######## Health simmer setup
-                      #####
+   ######## Health simmer setup
+      #####
                 isolate({
                   PopSize<-reactive({input$CatchmentPop})
                   PopSize<-PopSize()
                   
-                    ### Heatwave inputs
+        ### Heatwave inputs
                   HWRun<-reactive(input$HWInput)
                   HWRun<-HWRun()
 
@@ -270,7 +252,7 @@ shinyServer(function(input, output,session) {
                 }else{}
                   
                     
-                    ### Other inputs      
+        ### Adaptation options  
                         BinMCI<-reactive(input$mci)      
                         MCI<-if(BinMCI()==TRUE){1}else{0}
                         
@@ -281,7 +263,7 @@ shinyServer(function(input, output,session) {
                         SurgeStaff<-if(Ss()==TRUE){1}else{0}
                 
                         
-                        ## Hospital resources
+          ## Health system resources
                         nEDbed<-reactive(input$nEDBeds)
                         nICUbed<-reactive(input$nICUbed)
                         nNonICUbed<-reactive(input$nNonICUbed)
@@ -300,13 +282,13 @@ shinyServer(function(input, output,session) {
                         nDispatcher<-reactive(input$nDispatcher)
                         nCoroner<-reactive(input$nCoroner)
                       
-                        
+           ## Run time selection
                         nRunDays<-reactive(input$RunTime)
                         nRunDays<-nRunDays()
 
                         
                         
-                        ## Time and calendar functions
+           ## Time and calendar functions
                         start_day<-function()sample(1:7,1)
                         
                         t_minute<-function(t) as.numeric(t)
@@ -315,37 +297,37 @@ shinyServer(function(input, output,session) {
                         DayOfWeek<-function(t) t_day(t)+start_day
                         
                         
-                        ## Triage distributions non-HW
+          ## Triage distributions non-HW patients
                         triageX<-c(1:5)
                         ambulanceTriageProb<-c(0.023,0.255,0.315,0.409,0)
                         walkinTriageProb<-c(0.005,0.158,0.491,0.315,0.029)
                         
-                        ## Triage distributions HW
+          ## Triage distributions HW patients
                         HWambulanceTriageProb<-c(0.035,0.303,0.334,0.328,0)
                         HWwalkinTriageProb<-c(0.014,0.183,0.457,0.305,0.031)
                         
-                        ## ICU distributions for Non-HW pt
+          ## ICU distributions for Non-HW pt
                         ICUdays<-seq(from=1440, to=28800, by=1440)
                         ICUdaysProb<-c(0.284,0.174,0.103,0.069,0.051,0.04,0.034,0.027,0.022,0.02,0.018,0.017,0.015,0.015,0.013,0.013,0.013,0.13,0.012,0.012)
                         
                         
-                        #              Patient set up
+        #### Patient set up
                         
-                        ## daily patients
+               ## Non-HW patients per day
                         
                         dis_WI<-rnorm(n=10000,mean=(0.93*PopSize),sd=(0.93*PopSize*0.01))
                         #+-1%
                         dis_EMS<-rnorm(n=10000,mean=(0.21*PopSize),sd=(0.21*PopSize*0.01))
                         #+-1%
-                        
+              
+              ## probability of death for non-hw patients  
                         ## 2.18 deaths per 100,000 per day * 42.9% in hospital - is equal to (2.18*0.429/93)
                         probdeathAll_WI<-(PopSize*0.01005613)
                         ## 2.18 deaths per 100,000 per day * 57.1% in hospital - is equal to (2.18*0.571/21) - multiple this by the number of deaths that EHS treats
                         probdeathAll_EMS<-(PopSize*0.05927524*0.5)
+
                         
-                       
-                        
-                        #Prehospital response timing 
+              #Prehospital response timing (if resource is immediately available)
                         tAmbulanceResponse<-reactive(input$AmbRespT)
                         tFireResponse<-reactive(input$FireRespT)
                         tTransportToHosSiren<-reactive(input$TransToHospSIREN)
@@ -376,10 +358,9 @@ shinyServer(function(input, output,session) {
                         nFTdoc<-nFTdoc()
                 })
                 
-                ## Non-heatwave hourly distribution
+            ## Non-heatwave hourly distribution
                 
-                
-                  #Walk in
+                  #Walk in non-HW patients
                     WI_0_3<-rpois(n=10000,lambda=(60/(.017*(sample(size=1,dis_WI)))))
                     WI_3_6<-rpois(n=10000,lambda=(60/(.011*(sample(size=1,dis_WI)))))
                     WI_6_9<-rpois(n=10000,lambda=(60/(.027*(sample(size=1,dis_WI)))))
@@ -389,7 +370,7 @@ shinyServer(function(input, output,session) {
                     WI_18_21<-rpois(n=10000,lambda=(60/(.056*(sample(size=1,dis_WI)))))
                     WI_21_24<-rpois(n=10000, lambda=(60/(.041*(sample(size=1,dis_WI)))))
                    
-                  #EMS arrival 
+                  #EMS arrival non-HW patients
                     EMS_0_6<-rpois(n=10000,lambda=(60/(.027*(sample(size=1,dis_EMS)))))
                     EMS_6_9<-rpois(n=10000,lambda=(60/(.023*(sample(size=1,dis_EMS)))))
                     EMS_9_12<-rpois(n=10000,lambda=(60/(.047*(sample(size=1,dis_EMS)))))
@@ -398,7 +379,7 @@ shinyServer(function(input, output,session) {
                     EMS_18_21<-rpois(n=10000,lambda=(60/(.054*(sample(size=1,dis_EMS)))))
                     EMS_21_24<-rpois(n=10000, lambda=(60/(.046*(sample(size=1,dis_EMS)))))
                 
-                        ## Small towns (i.e. if population size is less than 75k people) *Not used in paper*
+                   ## Small towns non-HW patient (i.e. if population size is less than 75k people) *Not used in paper*
                         WI_0_6<-rpois(n=10000,lambda=(60/(.014*(sample(size=1,dis_WI)))))
                         WI_6_12<-rpois(n=10000,lambda=(60/(.044*(sample(size=1,dis_WI)))))
                         WI_12_18<-rpois(n=10000,lambda=(60/(.06*(sample(size=1,dis_WI)))))
@@ -591,10 +572,12 @@ shinyServer(function(input, output,session) {
                                              timeout(function()sample(size=1,rep(ICUdays, round(100*ICUdaysProb)),replace=T)) %>%
                                              timeout(300)%>%
                                              seize("Non-ICU bed",1)%>%
+                                             set_attribute("Non-ICU admit time",function()as.numeric(as.numeric(now(env))))%>%
                                              set_attribute("Patient ICU LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ICU admit time")))))%>%
                                              release("ICU bed",1)%>%
                                              timeout(function()rpois(n=1,lambda=920))%>%
                                              timeout(function()sample(size=1,rgamma(n=1000,shape=2,scale=1000))) %>%
+                                             set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time")))))%>%
                                              set_attribute("ALC start",function()as.numeric(as.numeric(now(env))))%>%
                                              timeout(function()as.numeric(as.numeric(get_attribute(env,"Patient ICU LOS"))*0.20))%>%
                                              release("Non-ICU bed",1)%>%
@@ -1341,7 +1324,8 @@ shinyServer(function(input, output,session) {
         })
   
   
-
+############# Sumulation result graphics and output tables
+    #####
   
   output$Simmer1<-renderPlot({
     req(Hmodel)
@@ -1406,11 +1390,11 @@ shinyServer(function(input, output,session) {
       df<-df[,c(3,8,11,25,26,32,38,39,40,48,49)]
       
       df_base<-df %>%
-        filter(start_time < 18720)
+        filter(start_time < 20160)
       df_base<-as.data.frame(colMeans(df_base,na.rm = T))
       
       df_HW<-df %>%
-        filter(start_time > 18720 & start_time < 28800)
+        filter(start_time > 20160 & start_time < 30240)
       df_HW<-as.data.frame(colMeans(df_HW,na.rm = T))
       
       DF<-cbind(df_base,df_HW)
@@ -1632,73 +1616,143 @@ shinyServer(function(input, output,session) {
       write.csv(Log,file)
     })
   
-#### Distribution panels
-      DF_Dist<-reactive({
-    req(Hmodel)
-    Log1<-get_mon_arrivals(Hmodel())
-    Log2<-as.data.frame(get_mon_attributes(Hmodel()))
-    Log2<-Log2[,2:5]
-    colnames(Log2)<-c("name","key","value","replication")
-    Log2$value<-as.numeric(Log2$value)
-    Log2<-reshape2::dcast(Log2,name+replication~key,mean,fill=NaN)
-    Log<-merge(Log1,Log2,by=c("name","replication"))
-    janitor::clean_names(Log)
-
-  })
-  
-  #Triage score & deaths
-      output$Dist1<-renderPlot({
-        req(DF_Dist)
-        df<-DF_Dist()
-        
-        #simulation period
-        for(i in (1:nrow(df))){
-          actTime<-df[i,3]
-          if(actTime<18720){v<-"baseline"}else if(actTime>18720 & actTime<28800){v<-"heatwave"}else{v<-"post_heatwave"}
-          if(exists("vec")){
-            vec<-c(vec,v)
-          }else{
-            vec<-v
-          }
-        }
-        df$simulation_period<-vec
-        
-        heatwave_non<-c(
-          'baseline' = "Baseline period",
-          'heatwave' = "Heatwave period",
-          'post_heatwave'="Post heatwave")
-        
-        ggplot(df, aes(x=triage_score, fill=simulation_period))+
-          geom_histogram()+
-          facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
-          xlab("Triage score") +
-          ylab("Count of patients")+
-          labs(title="Distribution of CTAS Triage Scores")+
-          theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
-          theme(plot.background = element_rect(fill = "#F5FBFA")) +
-          theme(panel.background = element_rect(fill = "#F5FBFA")) +
-          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-                plot.title.position = "plot") +
-          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-                plot.caption.position = "plot") +
-          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-          theme(axis.text = element_text(size = 10)) +
-          theme(panel.grid.minor.x = element_blank()) +
-          theme(axis.line.x = element_line(colour = "#545F66")) +
-          theme(axis.line.y = element_blank()) +
-          theme(axis.ticks = element_blank()) +
-          theme(legend.position = "none")+
-          theme(strip.background = element_blank())
+    #### Distribution panels
+          DF_Dist<-reactive({
+        req(Hmodel)
+        Log1<-get_mon_arrivals(Hmodel())
+        Log2<-as.data.frame(get_mon_attributes(Hmodel()))
+        Log2<-Log2[,2:5]
+        colnames(Log2)<-c("name","key","value","replication")
+        Log2$value<-as.numeric(Log2$value)
+        Log2<-reshape2::dcast(Log2,name+replication~key,mean,fill=NaN)
+        Log<-merge(Log1,Log2,by=c("name","replication"))
+        janitor::clean_names(Log)
     
       })
-  
-  #Triage time by triage level
-      output$Dist2<-renderPlot({
+      
+      #Triage score & deaths
+          output$Dist1<-renderPlot({
+            req(DF_Dist)
+            df<-DF_Dist()
+            
+            #simulation period
+            for(i in (1:nrow(df))){
+              actTime<-df[i,3]
+              if(actTime<18720){v<-"baseline"}else if(actTime>20160 & actTime<30240){v<-"heatwave"}else{v<-"post_heatwave"}
+              if(exists("vec")){
+                vec<-c(vec,v)
+              }else{
+                vec<-v
+              }
+            }
+            df$simulation_period<-vec
+            
+            heatwave_non<-c(
+              'baseline' = "Baseline period",
+              'heatwave' = "Heatwave period",
+              'post_heatwave'="Post heatwave")
+            
+            ggplot(df, aes(x=triage_score, fill=simulation_period))+
+              geom_bar()+
+              facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
+              xlab("Triage score") +
+              ylab("Count of patients")+
+              labs(title="Distribution of CTAS Triage Scores")+
+              theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+              theme(plot.background = element_rect(fill = "#F5FBFA")) +
+              theme(panel.background = element_rect(fill = "#F5FBFA")) +
+              theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+              theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                    plot.title.position = "plot") +
+              theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+              theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                    plot.caption.position = "plot") +
+              theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+              theme(axis.text = element_text(size = 10)) +
+              theme(panel.grid.minor.x = element_blank()) +
+              theme(axis.line.x = element_line(colour = "#545F66")) +
+              theme(axis.line.y = element_blank()) +
+              theme(axis.ticks = element_blank()) +
+              theme(legend.position = "none")+
+              theme(strip.background = element_blank())
+        
+          })
+      
+      #Triage time by triage level
+          output$Dist2<-renderPlot({
+            req(DF_Dist)
+            df<-DF_Dist()
+          ####
+            # Edits to df ####
+            df$ed_admit_time<-as.numeric(df$ed_admit_time)
+            df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
+            df<-df %>%
+              mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
+            
+            df<-df %>%
+              mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
+            
+            #simulation period
+            for(i in (1:nrow(df))){
+              actTime<-df[i,3]
+              if(actTime<18720){v<-"baseline"}else if(actTime>18720 & actTime<28800){v<-"heatwave"}else{v<-"post_heatwave"}
+              if(exists("vec")){
+                vec<-c(vec,v)
+              }else{
+                vec<-v
+              }
+            }
+            df$simulation_period<-vec
+            
+            #ward status
+            for(i in (1:nrow(df))){
+              if(!is.na(df[i,34])){ws<-"ICU"
+              }else if(!is.na(df[i,37])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
+              if(exists("vec2")){
+                vec2<-c(vec2,ws)
+              }else{
+                vec2<-ws
+              }
+            }
+            df$ward_status<-as.factor(vec2)
+          #####
+          
+            heatwave_non<-c(
+              'baseline' = "Baseline period",
+              'heatwave' = "Heatwave period",
+              'post_heatwave'="Post heatwave")
+            
+            ggplot(df, aes(x=triage_score, y=time_in_ed_all))+
+              geom_jitter(aes(color=ward_status))+
+              facet_wrap(~factor(simulation_period),scales = "fixed",labeller=as_labeller(heatwave_non))+
+              xlab("Triage score") +
+              ylab("Time in ED (minutes)")+
+              labs(title="Distribution of time in ED by triage scores and ward admission status")+
+              theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+              theme(plot.background = element_rect(fill = "#F5FBFA")) +
+              theme(panel.background = element_rect(fill = "#F5FBFA")) +
+              theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+              theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                    plot.title.position = "plot") +
+              theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+              theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                    plot.caption.position = "plot") +
+              theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+              theme(axis.text = element_text(size = 10)) +
+              theme(panel.grid.minor.x = element_blank()) +
+              theme(axis.line.x = element_line(colour = "#545F66")) +
+              theme(axis.line.y = element_blank()) +
+              theme(axis.ticks = element_blank()) +
+              theme(legend.position = "right")+
+              theme(strip.background = element_blank())
+            
+          })
+          
+      #Ambulance response time by triage level
+          output$Dist3<-renderPlot({
         req(DF_Dist)
         df<-DF_Dist()
-      ####
+        ####
         # Edits to df ####
         df$ed_admit_time<-as.numeric(df$ed_admit_time)
         df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
@@ -1731,19 +1785,19 @@ shinyServer(function(input, output,session) {
           }
         }
         df$ward_status<-as.factor(vec2)
-      #####
-      
+        #####
+        
         heatwave_non<-c(
           'baseline' = "Baseline period",
           'heatwave' = "Heatwave period",
           'post_heatwave'="Post heatwave")
         
-        ggplot(df, aes(x=triage_score, y=time_in_ed_all))+
-          geom_jitter(aes(color=ward_status))+
-          facet_wrap(~factor(simulation_period),scales = "fixed",labeller=as_labeller(heatwave_non))+
+        ggplot(df, aes(x=as.factor(triage_score),y=ambulance_response_time))+
+          geom_jitter(aes())+
+          facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
           xlab("Triage score") +
-          ylab("Time in ED (minutes)")+
-          labs(title="Distribution of time in ED by triage scores and ward admission status")+
+          ylab("Ambulance response time (minutes)")+
+          labs(title="Distribution of ambulance response time by triage score and simulation period")+
           theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
           theme(plot.background = element_rect(fill = "#F5FBFA")) +
           theme(panel.background = element_rect(fill = "#F5FBFA")) +
@@ -1764,85 +1818,83 @@ shinyServer(function(input, output,session) {
         
       })
       
-  #Ambulance response time by triage level
-      output$Dist3<-renderPlot({
-    req(DF_Dist)
-    df<-DF_Dist()
-    ####
-    # Edits to df ####
-    df$ed_admit_time<-as.numeric(df$ed_admit_time)
-    df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
-    df<-df %>%
-      mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
-    
-    df<-df %>%
-      mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
-    
-    #simulation period
-    for(i in (1:nrow(df))){
-      actTime<-df[i,3]
-      if(actTime<18720){v<-"baseline"}else if(actTime>18720 & actTime<28800){v<-"heatwave"}else{v<-"post_heatwave"}
-      if(exists("vec")){
-        vec<-c(vec,v)
-      }else{
-        vec<-v
-      }
-    }
-    df$simulation_period<-vec
-    
-    #ward status
-    for(i in (1:nrow(df))){
-      if(!is.na(df[i,34])){ws<-"ICU"
-      }else if(!is.na(df[i,37])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
-      if(exists("vec2")){
-        vec2<-c(vec2,ws)
-      }else{
-        vec2<-ws
-      }
-    }
-    df$ward_status<-as.factor(vec2)
-    #####
-    
-    heatwave_non<-c(
-      'baseline' = "Baseline period",
-      'heatwave' = "Heatwave period",
-      'post_heatwave'="Post heatwave")
-    
-    ggplot(df, aes(x=as.factor(triage_score),y=ambulance_response_time))+
-      geom_jitter(aes())+
-      facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
-      xlab("Triage score") +
-      ylab("Ambulance response time (minutes)")+
-      labs(title="Distribution of ambulance response time by triage score and simulation period")+
-      theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
-      theme(plot.background = element_rect(fill = "#F5FBFA")) +
-      theme(panel.background = element_rect(fill = "#F5FBFA")) +
-      theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-      theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-            plot.title.position = "plot") +
-      theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-      theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-            plot.caption.position = "plot") +
-      theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-      theme(axis.text = element_text(size = 10)) +
-      theme(panel.grid.minor.x = element_blank()) +
-      theme(axis.line.x = element_line(colour = "#545F66")) +
-      theme(axis.line.y = element_blank()) +
-      theme(axis.ticks = element_blank()) +
-      theme(legend.position = "right")+
-      theme(strip.background = element_blank())
-    
-  })
-  
-  
-  #Time in ED by triage score
-  
-  #Time in ICU
-  
-  #Time in non-ICU ward
-  
-  #Time between patients by time of day
-  
+      #Time in ICU and Non-ICU
+          output$Dist4<-renderPlot({
+            req(DF_Dist)
+            df<-DF_Dist()
+            ####
+            # Edits to df ####
+            df$ed_admit_time<-as.numeric(df$ed_admit_time)
+            df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
+            df<-df %>%
+              mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
+            
+            df<-df %>%
+              mutate(time_in_ward=rowSums(.[,c("patient_icu_los","patient_non_icu_ward_los","alc")],na.rm=T))
+                     
+            df<-df %>%
+              mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
+            
+            #simulation period
+            for(i in (1:nrow(df))){
+              actTime<-df[i,3]
+              if(actTime<18720){v<-"baseline"}else if(actTime>18720 & actTime<28800){v<-"heatwave"}else{v<-"post_heatwave"}
+              if(exists("vec")){
+                vec<-c(vec,v)
+              }else{
+                vec<-v
+              }
+            }
+            df$simulation_period<-vec
+            
+            #ward status
+            for(i in (1:nrow(df))){
+              if(!is.na(df[i,34])){ws<-"ICU"
+              }else if(!is.na(df[i,37])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
+              if(exists("vec2")){
+                vec2<-c(vec2,ws)
+              }else{
+                vec2<-ws
+              }
+            }
+            df$ward_status<-as.factor(vec2)
+            #####
+            
+            heatwave_non<-c(
+              'baseline' = "Baseline period",
+              'heatwave' = "Heatwave period",
+              'post_heatwave'="Post heatwave")
+            
+            ggplot(df%>% filter(ward_status !="Not admitted to ward" & simulation_period != "post_heatwave"), aes(x=as.factor(ward_status),y=time_in_ward/1440))+
+              geom_boxplot()+
+              geom_jitter(aes())+
+              facet_wrap(~factor(simulation_period),scales = "fixed",labeller=as_labeller(heatwave_non))+
+              xlab("Simulation period") +
+              ylab("Total inpatient LOS (days)")+
+              labs(title="Distribution ICU and non-ICU ward LOS")+
+              theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+              theme(plot.background = element_rect(fill = "#F5FBFA")) +
+              theme(panel.background = element_rect(fill = "#F5FBFA")) +
+              theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+              theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                    plot.title.position = "plot") +
+              theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+              theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                    plot.caption.position = "plot") +
+              theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+              theme(axis.text = element_text(size = 10)) +
+              theme(panel.grid.minor.x = element_blank()) +
+              theme(axis.line.x = element_line(colour = "#545F66")) +
+              theme(axis.line.y = element_blank()) +
+              theme(axis.ticks = element_blank()) +
+              theme(legend.position = "right")+
+              theme(strip.background = element_blank())
+            
+          })
+      
+      
+      #Time between patients by time of day
+   ##### 
   
   #END server
   
