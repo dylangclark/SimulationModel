@@ -1,6 +1,6 @@
 ### BC health model
 # (c) Dylan G. Clark
-# 2022
+# 2023
 
 
 
@@ -422,11 +422,20 @@ shinyServer(function(input, output,session) {
                       #####
                       CodeBlue<-trajectory() %>%
                         set_prioritization(values=c(5,6,FALSE))%>%
-                        seize("quarter ED nurse", 4) %>%
+                        seize("quarter ED nurse", 4,continue=T,reject=trajectory()%>%
+                                timeout(1)%>%
+                                simmer::rollback(amount=3,times=Inf))%>%
                         branch(option=function() ifelse(get_attribute(env, "SALT?")==0,1,2),continue=c(TRUE,TRUE),
                                trajectory("Run code blue") %>%
-                                 seize("quarter ED nurse",4) %>%
-                                 seize("tenth ED doc", 10) %>%
+                                  log_("code blue nurse")%>%
+                                 seize("quarter ED nurse",4,continue=T,reject=trajectory()%>%
+                                         timeout(1)%>%
+                                         simmer::rollback(amount=2,times=Inf))%>%
+                                 log_("code blue Dr")%>%
+                                 seize("tenth ED doc", 10,continue=T,reject=trajectory()%>%
+                                         timeout(1)%>%
+                                         simmer::rollback(amount=2,times=Inf))%>%
+                                 
                                  timeout(25) %>%
                                  release("quarter ED nurse",4) %>%
                                  release_all("tenth ED doc"),
@@ -458,7 +467,6 @@ shinyServer(function(input, output,session) {
                       #####
                         
                         EDAcute<-trajectory()%>%  
-                          timeout(5)%>%
                           
                             ### patient dies in ED?
                                     branch(option=function() 
@@ -469,45 +477,64 @@ shinyServer(function(input, output,session) {
                           
                             ### Start pt assessment
                                     
-                                    set_prioritization(values=function(){
-                                      TS<-get_attribute(env,"triage score")
-                                      Prior<-ifelse(TS>3,1,ifelse(TS==3,0,ifelse(TS<3,0,0)))
-                                      Preemt<-Prior+1
-                                      c(Prior,Preemt,FALSE)
-                                    })%>%
-                                    timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=20),
-                                                             ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=15),
-                                                                    ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=5),1)))) %>%
-                                seize("quarter ED nurse",function() get_attribute(env,"ED nurses siezed"))%>%
+                                      #The higher the number, the higher the priority. Prempt is the minimum priority number that can prempt this patient
+                                set_prioritization(values=function(){
+                                  TS<-get_attribute(env,"triage score")
+                                  if(TS==5){Prior<-3}else{Prior<-(5-TS)}
+                                  if(Prior<3){Preempt<-(Prior+1)}else{Preempt<-(Prior+2)}
+                                  c(Prior,Preempt,FALSE)
+                                })%>%
+                                    timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=10),
+                                                             ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=5),
+                                                                    ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=1),0)))) %>%
+                          log_("seizing nurse")%>%          
+                          seize("quarter ED nurse",function() get_attribute(env,"ED nurses siezed"),continue=T,reject=trajectory()%>%
+                                            timeout(1)%>%
+                                            simmer::rollback(amount=2,times=Inf))%>%
+                                    log_("seize nurse")%>%
                           
+                                    timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=5),
+                                                             ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=10),
+                                                                    ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=1),0)))) %>%
+                          
+                                log_("waiting on dr")%>%
+                                seize("tenth ED doc",10,continue=T,reject = trajectory()%>%
+                                            timeout(1)%>%
+                                            simmer::rollback(amount=2,times=Inf))%>%
                                     timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=10),
                                                              ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=15),
-                                                                    ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=5),1)))) %>%
-                                    timeout(1)%>%
-                                seize("tenth ED doc",10,continue=T,reject = trajectory("Waiting on ED doc")%>%
-                                            timeout(1)%>%
-                                            simmer::rollback(amount=3,times=Inf))%>%
-                                    timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=10),
-                                                             ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=15)*1.2,
-                                                                    ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=20),30)))) %>%
-                                    
+                                                                    ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=20),10)))) %>%
+                          log_("w/ doc for initial assessment")%>%   
                                release_all("tenth ED doc")%>%
-                                    seize("tenth ED doc",function() get_attribute(env,"ED doctors siezed"),continue=T,reject=trajectory("Waiting on ED doc")%>%
+                                    seize("tenth ED doc",function() get_attribute(env,"ED doctors seized"),continue=T,reject=trajectory()%>%
                                             timeout(1)%>%
-                                            simmer::rollback(amount=3,times=Inf))%>%
+                                            simmer::rollback(amount=2,times=Inf))%>%
+                                release_all("quarter ED nurse")%>%
+                                seize("quarter ED nurse",1,continue=T,reject=trajectory()%>%
+                                        timeout(1)%>%
+                                        simmer::rollback(amount=2,times=Inf))%>%
                              
                           ### Waiting on labs and imaging for tx
-                          
-                                    set_attribute("triage score", function()ifelse(get_attribute(env,"triage score")==2,sample(size=1,rep(c(1,2), c(0.75,9.25)),replace=T),get_attribute(env,"triage score")))%>%
-                                    set_attribute("triage score", function()ifelse(get_attribute(env,"triage score")==3,sample(size=1,rep(c(2,3), c(0.04,9.6)),replace=T),get_attribute(env,"triage score")))%>%
+                          log_("waiting on labs")%>%
+                                    set_attribute("triage score", function()ifelse(get_attribute(env,"triage score")==2,sample(size=1,rep(c(1,2), c(1.0,9.0)),replace=T),get_attribute(env,"triage score")))%>%
+                                    set_attribute("triage score", function()ifelse(get_attribute(env,"triage score")==3,sample(size=1,rep(c(2,3), c(0.02,9.8)),replace=T),get_attribute(env,"triage score")))%>%
                                     set_prioritization(values=function(){
                                       TS<-get_attribute(env,"triage score")
-                                      Prior<-(5-TS)
-                                      Preemt<-(Prior+1)
-                                      c(Prior,Preemt,FALSE)
+                                      if(TS==5){Prior<-3}else{Prior<-(5-TS)}
+                                      if(Prior<3){Preempt<-(Prior+1)}else{Preempt<-(Prior+2)}
+                                      c(Prior,Preempt,FALSE)
                                     })%>%
-                                    timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=7)^1.2,ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=10)^1.2,rpois(n=1,lambda=30)^1.3))) %>%
+                                
+                                    timeout(function()ifelse(get_attribute(env,"triage score")==5,0,
+                                                             ifelse(get_attribute(env,"triage score")==4,rpois(n=1,lambda=7)^1.2,
+                                                                    ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=10)^1.5,
+                                                                           ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=30)^1.3,
+                                                                                  ifelse(get_attribute(env,"triage score")==1,rpois(n=1,lambda=7)^1.5,0)))))) %>%
                                     release_all("tenth ED doc")%>%
+                                    release_all("quarter ED nurse")%>%
+                                    seize("quarter ED nurse",function() get_attribute(env,"ED nurses siezed"),continue=T,reject=trajectory()%>%
+                                            timeout(1)%>%
+                                            simmer::rollback(amount=2,times=Inf))%>%
                           
                           ### Cooling HW patients
                                     timeout(function()ifelse(get_attribute(env,"triage score")<2.1 & get_attribute(env,"Heatwave patient")==1 & CoolDecanting==0 ,rpois(n=1,lambda=350)^1.1,0))%>%
@@ -520,15 +547,19 @@ shinyServer(function(input, output,session) {
 
                           ###
 
-                          
+                          log_("doc treating pt")%>%
                           ### Start pt tx
-                                    seize("tenth ED doc",10,continue=T,reject = trajectory("Waiting on ED doc")%>%
+                                    seize("tenth ED doc",10,continue=T,reject = trajectory()%>%
                                             timeout(1)%>%
-                                            simmer::rollback(amount=3,times=Inf))%>%
-                                    timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=7)^1.2,ifelse(get_attribute(env,"triage score")>2.1,rpois(n=1,lambda=5)^1.4,rpois(n=1,lambda=10)^1.4))) %>%
+                                            simmer::rollback(amount=2,times=Inf))%>%
+                                    timeout(function()ifelse(get_attribute(env,"triage score")==5,rpois(n=1,lambda=4)^1.2,
+                                                              ifelse(get_attribute(env,"triage score")==4,rpois(n=1,lambda=7)^1.2,
+                                                                ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=7)^1.4,
+                                                                    ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=12)^1.7,0))))) %>%
                                     release_all("tenth ED doc")%>%
-                                    timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=5)^1.2,ifelse(get_attribute(env,"triage score")>2.1,rpois(n=1,lambda=20),rpois(n=1,lambda=8)^1.4))) %>%
-                                    set_attribute("ED Boarding (start clock)",function()as.numeric(as.numeric(now(env))-45))%>%
+                          log_("doc done txing")%>%
+                                    timeout(function()ifelse(get_attribute(env,"triage score")==4,rpois(n=1,lambda=4)^1.2,ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=20),0))) %>%
+                                    
                         
                                       set_prioritization(values=function(){
                                         TS<-get_attribute(env,"triage score")
@@ -536,18 +567,19 @@ shinyServer(function(input, output,session) {
                                         Preemt<-(Prior+1)
                                         c(Prior,Preemt,FALSE)
                                       })%>%
+                          log_("discharging/admitting")%>%
                           
                           ### ED transfer/discharge
-                                    branch(option=function() ifelse(get_attribute(env, "triage score")<1.1,1,0), continue=FALSE,
+                                    branch(option=function() ifelse(get_attribute(env, "triage score")==1,1,0), continue=FALSE,
                                            trajectory("ICU")%>%
-                                             seize("tenth ED doc",5,continue=T,reject = trajectory("Waiting on ED doc")%>%
+                                             set_attribute("ED Boarding (start clock)",function()as.numeric(as.numeric(now(env))-45))%>%
+                                             seize("tenth ED doc",5,continue=T,reject = trajectory()%>%
+                                                     timeout(1)%>%
+                                                     simmer::rollback(amount=2,times=Inf))%>%
+                                             seize("ICU bed",1,continue=T,reject=trajectory() %>%
+                                                     log_("Waiting for ICU bed")%>%
                                                      timeout(1)%>%
                                                      simmer::rollback(amount=3,times=Inf))%>%
-                                             timeout(1)%>%
-                                             seize("ICU bed",1,reject=trajectory("Waiting for ICU bed") %>%
-                                                     log_("Waiting for ICU bed")%>%
-                                                     timeout(5)%>%
-                                                     simmer::rollback(amount=3,times=Inf),continue=TRUE)%>%
                                              set_attribute("ICU admit time",function()as.numeric(as.numeric(now(env))))%>%
                                                       
                                                       #check if HW is done?
@@ -562,7 +594,6 @@ shinyServer(function(input, output,session) {
                                              release_all("ED bed")%>%
                                              set_attribute("Time in ED for highest severity",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED admit time")))))%>%
                                              set_attribute("ED boarding time for ICU",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED Boarding (start clock)")))))%>%
-                                             timeout(90)%>%
                                              branch(option=function()
                                                ifelse(get_attribute(env, "Patient dies")==1 & get_attribute(env, "dieHosWard")==1,1,0), continue=FALSE,
                                                trajectory()%>%
@@ -571,11 +602,12 @@ shinyServer(function(input, output,session) {
                                                  simmer::join(CodeBlue2)) %>%
                                              timeout(function()sample(size=1,rep(ICUdays, round(100*ICUdaysProb)),replace=T)) %>%
                                              timeout(300)%>%
-                                             seize("Non-ICU bed",1)%>%
+                                             seize("Non-ICU bed",1,continue=T,reject=trajectory()%>%
+                                                     timeout(1)%>%
+                                                     simmer::rollback(amount=2,times=Inf))%>%
                                              set_attribute("Non-ICU admit time",function()as.numeric(as.numeric(now(env))))%>%
                                              set_attribute("Patient ICU LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ICU admit time")))))%>%
                                              release("ICU bed",1)%>%
-                                             timeout(function()rpois(n=1,lambda=920))%>%
                                              timeout(function()sample(size=1,rgamma(n=1000,shape=2,scale=1000))) %>%
                                              set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time")))))%>%
                                              set_attribute("ALC start",function()as.numeric(as.numeric(now(env))))%>%
@@ -585,17 +617,14 @@ shinyServer(function(input, output,session) {
                                            
                                     )%>%
                                     
-                                    branch(option=function() ifelse(get_attribute(env, "triage score")==2,1, 
-                                                                    ifelse(sample(size=1,rep(c(0,1), c(10,0)),replace=T)==1 & get_attribute(env, "triage score")==3,1,0)), continue=FALSE,
-                                           trajectory("Non-ICU")%>%
+                                    branch(option=function() ifelse(get_attribute(env, "triage score")==2,1,0),continue=FALSE,
+                                          trajectory("Non-ICU")%>%
+                                             set_attribute("ED Boarding (start clock)",function()as.numeric(as.numeric(now(env))-45))%>%
                                              release_all("tenth ED doc")%>%
-                                             timeout(function()sample(size=1,rpois(n=1000,lambda=50),replace=T)^1.5)%>%
-                                             timeout(1)%>%
-                                             seize("Non-ICU bed",1,continue=T,reject = trajectory("Waiting on Non-ICU bed")%>%
-                                                     timeout(5)%>%
-                                                     release_all("tenth ED doc")%>%
-                                                     seize("tenth ED doc",1)%>%
-                                                     simmer::rollback(amount=6,times=Inf))%>%
+                                             timeout(function()rpois(n=1,lambda=2)^2)%>%
+                                             seize("Non-ICU bed",1,continue=T,reject = trajectory()%>%
+                                                     timeout(1)%>%
+                                                     simmer::rollback(amount=2,times=Inf))%>%
                                              set_attribute("Non-ICU admit time",function()as.numeric(as.numeric(now(env))))%>%
                                              release_all("tenth ED doc")%>%
                                              release_all("quarter ED nurse")%>%
@@ -609,10 +638,10 @@ shinyServer(function(input, output,session) {
                                                  timeout(function()rpois(n=1,lambda=120))%>%
                                                  release_all("Non-ICU bed")%>%
                                                  simmer::join(CodeBlue2)) %>%
-                                             timeout(function()sample(size=1,rgamma(n=1000,shape=4,scale=850),replace=T)) %>%
+                                             timeout(function()sample(size=1,rgamma(n=1000,shape=4,scale=2700),replace=T)) %>%
                                              set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time")))))%>%
                                              set_attribute("ALC start",function()as.numeric(as.numeric(now(env))))%>%
-                                             timeout(function()as.numeric(as.numeric(get_attribute(env,"Patient Non-ICU ward LOS"))*0.15))%>%
+                                             timeout(function()sample(size=1,rgamma(n=1000,shape=4,scale=2700),replace=T))%>%
                                              
                                              timeout(function()ifelse(get_attribute(env,"triage score")<2.1 & get_attribute(env,"Heatwave patient")==1 & CoolDecanting==0 ,rpois(n=1,lambda=350)^1.1,0))%>%
                                              timeout(function()ifelse(get_attribute(env,"triage score")==3 & get_attribute(env,"Heatwave patient")==1 & CoolDecanting==0 ,rpois(n=1,lambda=460),0))%>%
@@ -627,7 +656,7 @@ shinyServer(function(input, output,session) {
                                     
                                     branch(option=function() ifelse(get_attribute(env, "triage score")==3,1,0), continue=FALSE,
                                              trajectory("ED discharge")%>%
-                                               
+                                             log_("discharging (triage score 3)")%>%  
                                                release_all("tenth ED doc")%>%
                                                release_all("quarter ED nurse")%>%
                                                release_all("ED bed")%>%
@@ -639,10 +668,10 @@ shinyServer(function(input, output,session) {
                                                          
                                               release_all("tenth ED doc")%>%
                                               release_all("quarter ED nurse")%>%
-                                                         release_all("ED bed")%>%
-                                                         set_attribute("Time in ED for lowest severity",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED admit time")))))
-                                                       
-                                                )
+                                              release_all("ED bed")%>%
+                                                         set_attribute("Time in ED for lowest severity",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED admit time")))))%>%
+                                           log_("discharging (triage score 4 or 5)")        
+                                      )
                         
                       #####
                         
@@ -663,8 +692,7 @@ shinyServer(function(input, output,session) {
                                   branch(option=function()ifelse(get_attribute(env, "mode of arrival")==0,1,0), continue=TRUE,
                                     trajectory()%>%
                                         log_("triaging patient")%>%
-                                        seize("Triage nurse", 1, continue=TRUE,
-                                              reject=trajectory("waiting room before triage") %>%
+                                        seize("Triage nurse", 1, continue=TRUE,reject=trajectory() %>%
                                                 log_("Waiting for triage")%>%
                                                 seize("Waiting room chair",1) %>%
                                                 timeout(1) %>%
@@ -684,8 +712,10 @@ shinyServer(function(input, output,session) {
                                       set_attribute("Ambulance off-load time",function()ifelse(get_attribute(env,"mode of arrival")==1,as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))),0))%>%
                                       simmer::join(CodeBlue)) %>%
                                   ####
-                                  
-                                  seize("Waiting room chair",1) %>%
+                                  log_("need chair")%>%
+                                  seize("Waiting room chair",1,continue=T,reject=trajectory()%>%
+                                          timeout(1)%>%
+                                          simmer::rollback(amount=2,times=Inf))%>%
                                   
                                   renege_in(t=function()ifelse(get_attribute(env,"mode of arrival")==0 & get_attribute(env, "triage score")>3.9, sample(size=1,replace=T,x=rgamma(n=1000,shape=1.8,scale=200)),10000),keep_seized = FALSE,
                                     out=trajectory()%>%
@@ -717,11 +747,10 @@ shinyServer(function(input, output,session) {
                                   timeout(function()ifelse(get_attribute(env,"triage score")>3, rpois(n=1,lambda=60),0))%>%
                                   timeout(function()ifelse(get_attribute(env,"triage score")>3 & get_attribute(env,"mode of arrival")==0 & as.numeric(get_queue_count(env,"quarter ED nurse"))>1,rpois(n=1,lambda=120),0))%>%
                                   timeout(function()ifelse(get_attribute(env,"triage score")==3 & get_attribute(env,"mode of arrival")==0 & as.numeric(get_queue_count(env,"quarter ED nurse"))>5,rpois(n=1,lambda=40),0))%>%
-                          
-                                  seize("ED bed",1, continue= TRUE,
-                                        reject = trajectory("Waiting on ED bed")%>%
+                                  log_("ready for bed")%>%
+                                  seize("ED bed",1, continue= TRUE,reject = trajectory()%>%
                                                 timeout(1)%>%
-                                                simmer::rollback(amount=3,times=Inf))%>%
+                                                simmer::rollback(amount=2,times=Inf))%>%
                                                 ### Test if die in ED
                                   renege_abort()%>%
                                   log_("admitted to ED")%>%
@@ -729,11 +758,11 @@ shinyServer(function(input, output,session) {
                                   set_attribute("ED admit time",function()as.numeric(now(env)))%>%
                                   release_all("Waiting room chair")%>%
                                   set_prioritization(values=function(){
-                                      TS<-get_attribute(env,"triage score")
-                                      Prior<-(5-TS)
-                                      Preemt<-(Prior+1)
-                                      c(Prior,Preemt,FALSE)
-                                    })%>%
+                                    TS<-get_attribute(env,"triage score")
+                                    Prior<-(5-TS)
+                                    if(Prior<3){Preempt<-(Prior+1)}else{(Preempt<-(Prior+2))}
+                                    c(Prior,Preempt,FALSE)
+                                  })%>%
                                   set_attribute("Door to ED bed wait for highest severity",function()ifelse(get_attribute(env,"triage score")<2.1,as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))),NA))%>%
                                   set_attribute("Door to ED bed wait for lowest severity",function()ifelse(get_attribute(env,"triage score")>3.9,as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))),NA))%>%
                                   release_all("Ambulance")%>%
@@ -769,11 +798,16 @@ shinyServer(function(input, output,session) {
                                                  set_attribute("Heatwave deaths",function()get_server_count(env,"Heatwave Morgue"))%>%
                                                  set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
                                                  release_all("coroner"))%>%
-                                         #log_("DOA")%>% 
-                                         seize("police",1)%>%
+                                         log_("DOA")%>% 
+                                         seize("police",1,continue=T,reject=trajectory()%>%
+                                                 timeout(1)%>%
+                                                 simmer::rollback(amount=2,times=Inf))%>%
                                          release_all("fire")%>%
                                          timeout(60)%>%
-                                         seize("coroner",1)%>%
+                                          log_("")%>%
+                                         seize("coroner",1,continue=T,reject=trajectory()%>%
+                                                 timeout(1)%>%
+                                                 simmer::rollback(amount=2,times=Inf))%>%
                                          release_all("police")%>%
                                          timeout(function()rpois(n=1,lambda=240))%>%
                                          seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
@@ -788,13 +822,16 @@ shinyServer(function(input, output,session) {
                                          ## dispatcher determines over the phone that no resources are deployed immediately
                                           log_("Dispatercher SALT triage")%>%
                                           seize("family with body",1)%>%
+                                            log_("")%>%
                                           seize("police",1,continue=FALSE,
                                                 reject= trajectory()%>%
                                                     timeout(5)%>%
                                                     simmer::rollback(amount=2,check=function()get_queue_count(env,"police")<5))%>%
                                           timeout(30)%>%
                                           release("police",1)%>%
-                                          seize("coroner",1)%>%
+                                          seize("coroner",1,continue=T,reject=trajectory()%>%
+                                                  timeout(1)%>%
+                                                  simmer::rollback(amount=2,times=Inf))%>%
                                           timeout(function()rpois(n=1,lambda=120))%>%
                                            seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
                                            seize("Heatwave Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==1,1,0))%>%
@@ -804,9 +841,15 @@ shinyServer(function(input, output,session) {
                                                  
                                   trajectory("Die prehos w/ provider and MCI")%>%
                                           simmer::select(resources=FirstResponder,policy="first-available",id=0)%>%
-                                          seize_selected(amount=1,id=0)%>%
+                                          log_("")%>%
+                                          seize_selected(amount=1,id=0,continue=T,reject=trajectory()%>%
+                                                           timeout(1)%>%
+                                                           simmer::rollback(amount=2,times=Inf))%>%
                                           timeout(min(rpois(n=1, lambda=tAmbulanceResponse),rpois(n=1, lambda=tFireResponse)))%>%
-                                          seize("Ambulance",amount=function()ifelse(get_selected(env,id=0)=="Ambulance",0,1))%>%
+                                          log_("ambulance")%>%
+                                          seize("Ambulance",amount=function()ifelse(get_selected(env,id=0)=="Ambulance",0,1),continue=T,reject=trajectory()%>%
+                                                  timeout(1)%>%
+                                                  simmer::rollback(amount=2,times=Inf))%>%
                                           set_attribute("Ambulance response time",function() as.numeric(as.numeric(now(env)-(get_attribute(env,"911 call time")))))%>%
                                           timeout(function()rpois(n=1, lambda=10))%>%
                                           release_all("fire")%>%
@@ -820,37 +863,48 @@ shinyServer(function(input, output,session) {
                                         
                                   trajectory("Run code and no MCI")%>%
                                           simmer::select(resources=FirstResponder,policy="first-available",id=0)%>%
-                                          seize_selected(amount=1,id=0)%>%
+                                          seize_selected(amount=1,id=0,continue=T,reject=trajectory()%>%
+                                                           timeout(1)%>%
+                                                           simmer::rollback(amount=3,times=Inf))%>%
                                           timeout(min(rpois(n=1, lambda=tAmbulanceResponse),rpois(n=1, lambda=tFireResponse)))%>%
-                                          seize("Ambulance",amount=function()ifelse(get_selected(env,id=0)=="Ambulance",0,1))%>%
+                                          log_("ambulance")%>%
+                                          seize("Ambulance",amount=function()ifelse(get_selected(env,id=0)=="Ambulance",0,1),continue=T,reject=trajectory()%>%
+                                                  timeout(1)%>%
+                                                  simmer::rollback(amount=3,times=Inf))%>%
                                           set_attribute("Ambulance response time",function() as.numeric(as.numeric(now(env)-(get_attribute(env,"911 call time")))))%>%
                                           timeout(function()rpois(n=1, lambda=10))%>%
                                           release("fire",amount=function()ifelse(get_selected(env,id=0)=="fire",1,0))%>%
                                           timeout(function()rpois(n=1, lambda=tTransportToHosSiren))%>%
-                                              set_prioritization(values=function(){
-                                               TS<-get_attribute(env,"triage score")
-                                               Prior<-(4)
-                                               Preemt<-(Prior+1)
-                                               c(Prior,Preemt,FALSE)
-                                             })%>%
+                                           set_prioritization(values=function(){
+                                             TS<-get_attribute(env,"triage score")
+                                             Prior<-(5-TS)
+                                             if(Prior<3){Preempt<-(Prior+1)}else{(Preempt<-(Prior+2))}
+                                             c(Prior,Preempt,FALSE)
+                                           })%>%
                                           simmer::join(Hospital),
                                           
                                  trajectory("1B High acuity not dead")%>%
                                    #log_("not dead but sick")%>%
                                    simmer::select(FirstResponder,policy="first-available",id=1)%>%
-                                   seize_selected(amount=1,id=1)%>%
+                                    log_("")%>%
+                                   seize_selected(amount=1,id=1,continue=T,reject=trajectory()%>%
+                                                    timeout(1)%>%
+                                                    simmer::rollback(amount=3,times=Inf))%>%
                                    #log_(function()paste0("ambulance queue: ", as.character(get_queue_count(env,"Ambulance"))))%>%
                                    #log_(function() paste0("seized: ",as.character(get_selected(env,id=1))))%>%
                                    timeout(min(rpois(n=1, lambda=tAmbulanceResponse),rpois(n=1, lambda=tFireResponse)))%>%
-                                   seize("Ambulance",amount=function()ifelse(get_selected(env,id=1)=="Ambulance",0,1))%>%
+                                    log_("")%>%
+                                   seize("Ambulance",amount=function()ifelse(get_selected(env,id=1)=="Ambulance",0,1),continue=T,reject=trajectory()%>%
+                                           timeout(1)%>%
+                                           simmer::rollback(amount=3,times=Inf))%>%
                                    set_attribute("Ambulance response time",function() as.numeric(as.numeric(now(env)-(get_attribute(env,"911 call time")))))%>%
                                    release("fire",amount=function()ifelse(get_selected(env,id=1)=="fire",1,0))%>%
                                    timeout(function()rpois(n=1, lambda=tTransportToHosSiren))%>%
                                    set_prioritization(values=function(){
                                      TS<-get_attribute(env,"triage score")
-                                     Prior<-(4)
-                                     Preemt<-(Prior+1)
-                                     c(Prior,Preemt,FALSE)
+                                     Prior<-(5-TS)
+                                     if(Prior<3){Preempt<-(Prior+1)}else{(Preempt<-(Prior+2))}
+                                     c(Prior,Preempt,FALSE)
                                    })%>%
                                    simmer::join(Hospital))
                       
@@ -859,19 +913,25 @@ shinyServer(function(input, output,session) {
                       LowAcuity<-trajectory()%>%
                         #log_("not too sick")%>%
                         simmer::select(FirstResponder,"first-available",id=2)%>%
-                        seize_selected(amount=1,id=2)%>%
+                        log_("")%>%
+                        seize_selected(amount=1,id=2,continue=T,reject=trajectory()%>%
+                                         timeout(1)%>%
+                                         simmer::rollback(amount=3,times=Inf))%>%
                         #log_(function()paste0("ambulance queue: ", as.character(get_queue_count(env,"Ambulance"))))%>%
                         #log_(function() paste0("seized: ",as.character(get_selected(env,id=2))))%>%
                         timeout(min(rpois(n=1, lambda=tAmbulanceResponse),rpois(n=1, lambda=tFireResponse)))%>%
-                        seize("Ambulance",amount=function()ifelse(get_selected(env,id=2)=="Ambulance",0,1))%>%
+                        log_("ambulance")%>%
+                        seize("Ambulance",amount=function()ifelse(get_selected(env,id=2)=="Ambulance",0,1),continue=T,reject=trajectory("Waiting on ambulance")%>%
+                                timeout(1)%>%
+                                simmer::rollback(amount=3,times=Inf))%>%
                         set_attribute("Ambulance response time",function() as.numeric(as.numeric(now(env)-(get_attribute(env,"911 call time")))))%>%
                         release("fire",amount=function()ifelse(get_selected(env,id=2)=="fire",1,0))%>%
                         timeout(function()rpois(n=1, lambda=tTransportToHos))%>%
                         set_prioritization(values=function(){
                           TS<-get_attribute(env,"triage score")
-                          Prior<-(2)
-                          Preemt<-(Prior+1)
-                          c(Prior,Preemt,FALSE)
+                          Prior<-(5-TS)
+                          if(Prior<3){Preempt<-(Prior+1)}else{(Preempt<-(Prior+2))}
+                          c(Prior,Preempt,FALSE)
                         })%>%
                         simmer::join(Hospital)
                       
@@ -925,23 +985,26 @@ shinyServer(function(input, output,session) {
                         set_prioritization(values=function(){
                           TS<-get_attribute(env,"triage score")
                           Prior<-(5-TS)
-                          Preemt<-(Prior+1)
-                          c(Prior,Preemt,FALSE)
+                          if(Prior<3){Preempt<-(Prior+1)}else{(Preempt<-(Prior+2))}
+                          c(Prior,Preempt,FALSE)
                         })%>%
                         
                         #set fragility attribute for FT (low co-morbidity/age =0 or high-risk =1)
                         set_attribute(keys="fragility",values=function()
-                          rbinom(n=1,size=1,prob=0.4))%>%
+                          rbinom(n=1,size=1,prob=0.35))%>%
                         
                         #set resource usage
                         set_attribute(keys="ED nurses siezed", values=function()
-                          ifelse(get_attribute(env, "triage score")<1.1,4,
-                                 ifelse(get_attribute(env, "triage score")<2.1,2,1))) %>%
+                          ifelse(get_attribute(env, "triage score")==1,4,
+                                 ifelse(get_attribute(env, "triage score")==2,2,
+                                        ifelse(get_attribute(env, "triage score")>2.1,1,1)))) %>%
                         
-                        set_attribute(keys="ED doctors siezed", values=function()
+                        set_attribute(keys="ED doctors seized", values=function()
                           ifelse(get_attribute(env, "triage score")==1, 10,
                                  ifelse(get_attribute(env, "triage score")==2, 5,
-                                        ifelse(get_attribute(env, "triage score")>2, 1, 1)))) %>%
+                                    ifelse(get_attribute(env, "triage score")==3, 4,
+                                        ifelse(get_attribute(env, "triage score")==4, 1,
+                                               ifelse(get_attribute(env, "triage score")==5, 10,)))))) %>%
                         
                         #set dead or alive outcome
                         set_attribute(keys="Patient dies", values=function() rbinom(n=1,size=1,prob=0.45)) %>%
@@ -976,25 +1039,29 @@ shinyServer(function(input, output,session) {
                         set_prioritization(values=function(){
                           TS<-get_attribute(env,"triage score")
                           Prior<-(5-TS)
-                          Preemt<-(Prior+1)
-                          c(Prior,Preemt,FALSE)
+                          if(Prior<3){Preempt<-(Prior+1)}else{(Preempt<-(Prior+2))}
+                          c(Prior,Preempt,FALSE)
                         })%>%
                         
                         #set fragility attribute for FT (low co-morbidity/age =0 or high-risk =1)
                         set_attribute(keys="fragility",values=function()
-                          rbinom(n=1,size=1,prob=0.7))%>%
+                          rbinom(n=1,size=1,prob=0.65))%>%
                         
                       
                         
+
                         #set resource usage
                         set_attribute(keys="ED nurses siezed", values=function()
                           ifelse(get_attribute(env, "triage score")==1,4,
-                                 ifelse(get_attribute(env, "triage score")==2,2,1))) %>%
+                                 ifelse(get_attribute(env, "triage score")==2,2,
+                                        ifelse(get_attribute(env, "triage score")>2.1,1,1)))) %>%
                         
-                        set_attribute(keys="ED doctors siezed", values=function()
+                        set_attribute(keys="ED doctors seized", values=function()
                           ifelse(get_attribute(env, "triage score")==1, 10,
                                  ifelse(get_attribute(env, "triage score")==2, 5,
-                                        ifelse(get_attribute(env, "triage score")>2, 1, 1)))) %>%
+                                        ifelse(get_attribute(env, "triage score")==3, 4,
+                                               ifelse(get_attribute(env, "triage score")==4, 1,
+                                                      ifelse(get_attribute(env, "triage score")==5, 10,)))))) %>%
                         
                         #set dead or alive outcome
                         set_attribute(keys="Patient dies", values=function()
@@ -1039,32 +1106,39 @@ shinyServer(function(input, output,session) {
                         set_attribute(keys="mode of arrival", values=0)%>%
                         
                         #set triage score (informed by arrival attribute)
+            
                         set_attribute(keys="triage score",values=function() sample(size=1,rep(triageX, round(100*walkinTriageProb)),replace=T)) %>%
                         set_prioritization(values=function(){
-                                TS<-get_attribute(env,"triage score")
-                                Prior<-(5-TS)
-                                Preemt<-(Prior+1)
-                                c(Prior,Preemt,FALSE)
-                              })%>%
+                          TS<-get_attribute(env,"triage score")
+                          Prior<-(5-TS)
+                          if(Prior<3){Preempt<-(Prior+1)}else{(Preempt<-(Prior+2))}
+                          c(Prior,Preempt,FALSE)
+                        })%>%
                         
                         #set fragility attribute for FT (low co-morbidity/age =0 or high-risk =1)
                         set_attribute(keys="fragility",values=function()
-                          rbinom(n=1,size=1,prob=0.65))%>%
+                          rbinom(n=1,size=1,prob=0.55))%>%
                         
                         #set resource usage
+                        #set resource usage
                         set_attribute(keys="ED nurses siezed", values=function()
-                          ifelse(get_attribute(env, "triage score")<1.1,4,
-                                 ifelse(get_attribute(env, "triage score")<2.1,2,1))) %>%
+                          ifelse(get_attribute(env, "triage score")==1,4,
+                                 ifelse(get_attribute(env, "triage score")==2,2,
+                                        ifelse(get_attribute(env, "triage score")>2.1,1,1)))) %>%
                         
-                        set_attribute(keys="ED doctors siezed", values=function()
-                          ifelse(get_attribute(env, "triage score")<2, 10,
-                                 ifelse(get_attribute(env, "triage score")==2, 2,
-                                        ifelse(get_attribute(env, "triage score")>2, 1, 1)))) %>%
+                        set_attribute(keys="ED doctors seized", values=function()
+                          ifelse(get_attribute(env, "triage score")==1, 10,
+                                 ifelse(get_attribute(env, "triage score")==2, 5,
+                                        ifelse(get_attribute(env, "triage score")==3, 4,
+                                               ifelse(get_attribute(env, "triage score")==4, 1,
+                                                      ifelse(get_attribute(env, "triage score")==5, 10,)))))) %>%
                         
                         #set dead or alive outcome
-                        set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.212),
-                                                                                   ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.05),
-                                                                                          ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.01),0))))%>%
+                        
+                        set_attribute(keys="Patient dies",0)%>%
+                        #set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.212),
+                         #                                                          ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.05),
+                         #                                                                 ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.01),0))))%>%
                         
                         #death distributions
                         set_attribute(keys="dieWaitingRoom", values=function()
@@ -1096,31 +1170,36 @@ shinyServer(function(input, output,session) {
                         #set triage score (informed by arrival attribute)
                         set_attribute(keys="triage score",values=function() sample(size=1,rep(triageX, round(100*ambulanceTriageProb)),replace=T)) %>%
                         set_prioritization(values=function(){
-                                TS<-get_attribute(env,"triage score")
-                                Prior<-(5-TS)
-                                Preemt<-(Prior+1)
-                                c(Prior,Preemt,FALSE)
-                              })%>%
+                          TS<-get_attribute(env,"triage score")
+                          Prior<-(5-TS)
+                          if(Prior<3){Preempt<-(Prior+1)}else{(Preempt<-(Prior+2))}
+                          c(Prior,Preempt,FALSE)
+                        })%>%
                         
                         #set fragility attribute for FT (low co-morbidity/age =0 or high-risk =1)
                         set_attribute(keys="fragility",values=function()
-                          rbinom(n=1,size=1,prob=0.7))%>%
+                          rbinom(n=1,size=1,prob=0.65))%>%
                       
                         
                         #set dead or alive outcome
-                        set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.212),
-                                                                                   ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.09),
-                                                                                          ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.01),0))))%>%
+                        set_attribute(keys="Patient dies",0)%>%
+                        #set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.212),
+                                                                                   #ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.09),
+                                                                                          #ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.01),0))))%>%
                         
                         #set resource usage
+                        #set resource usage
                         set_attribute(keys="ED nurses siezed", values=function()
-                          ifelse(get_attribute(env, "triage score")<1.1,4,
-                                 ifelse(get_attribute(env, "triage score")<2.1,2,1))) %>%
+                          ifelse(get_attribute(env, "triage score")==1,4,
+                                 ifelse(get_attribute(env, "triage score")==2,2,
+                                        ifelse(get_attribute(env, "triage score")>2.1,1,1)))) %>%
                         
-                        set_attribute(keys="ED doctors siezed", values=function()
-                          ifelse(get_attribute(env, "triage score")<2, 10,
-                                 ifelse(get_attribute(env, "triage score")==2, 2,
-                                        ifelse(get_attribute(env, "triage score")>2, 1, 1)))) %>%
+                        set_attribute(keys="ED doctors seized", values=function()
+                          ifelse(get_attribute(env, "triage score")==1, 10,
+                                 ifelse(get_attribute(env, "triage score")==2, 5,
+                                        ifelse(get_attribute(env, "triage score")==3, 4,
+                                               ifelse(get_attribute(env, "triage score")==4, 1,
+                                                      ifelse(get_attribute(env, "triage score")==5, 10,)))))) %>%
                         
                         
                         
@@ -1150,30 +1229,30 @@ shinyServer(function(input, output,session) {
                       #####
 
                       env%>%
-                        add_resource(name="Ambulance", capacity=nAmbulance, queue_size=(nAmbulance*10),preemptive=F,preempt_order = "lifo") %>%
-                        add_resource(name="fire", capacity=nFire, queue_size=(nFire*10),preemptive=F,preempt_order = "lifo") %>%
-                        add_resource(name="police", capacity=nPolice, queue_size=(nPolice*5),preemptive=F,preempt_order = "lifo") %>%
-                        add_resource(name="coroner", capacity=nCoroner, queue_size=(nCoroner*20),preemptive=F,preempt_order = "lifo") %>%
-                        add_resource(name="family with body", capacity=Inf, queue_size=Inf,preemptive=F,preempt_order = "lifo") %>%
-                        add_resource(name="911Dispatcher", capacity=nDispatcher, queue_size=(nDispatcher*5),preemptive=F,preempt_order = "lifo")
+                        add_resource(name="Ambulance", capacity=nAmbulance, queue_size=(nAmbulance*10),preemptive=F,preempt_order = "fifo") %>%
+                        add_resource(name="fire", capacity=nFire, queue_size=(nFire*10),preemptive=F,preempt_order = "fifo") %>%
+                        add_resource(name="police", capacity=nPolice, queue_size=(nPolice*5),preemptive=F,preempt_order = "fifo") %>%
+                        add_resource(name="coroner", capacity=nCoroner, queue_size=(nCoroner*20),preemptive=F,preempt_order = "fifo") %>%
+                        add_resource(name="family with body", capacity=Inf, queue_size=Inf,preemptive=F,preempt_order = "fifo") %>%
+                        add_resource(name="911Dispatcher", capacity=nDispatcher, queue_size=(nDispatcher*5),preemptive=F,preempt_order = "fifo")
                         
                       
                       
                       env%>%
-                        add_resource(name="Waiting room chair", capacity=nWaitingRoom, queue_size=(nWaitingRoom),preemptive=F,preempt_order = "lifo") %>%
+                        add_resource(name="Waiting room chair", capacity=nWaitingRoom, queue_size=(nWaitingRoom),preemptive=F,preempt_order = "fifo") %>%
                         add_resource(name="Morgue", capacity=nMorgue, queue_size=Inf,preemptive=F) %>%
                         add_resource(name="Heatwave Morgue", capacity=nMorgue, queue_size=Inf,preemptive=F) %>%
-                        add_resource(name = "quarter ED nurse",capacity = nEDnurse, queue_size = Inf,preemptive = F,preempt_order = "lifo") %>%
-                        add_resource(name = "Triage nurse",capacity = nTriageNurse, queue_size = Inf,preemptive = F,preempt_order = "lifo") %>%
-                        add_resource(name = "ED bed",capacity = nEDbed, queue_size = (nWaitingRoom),preemptive =F,preempt_order = "lifo") %>%
-                        add_resource(name = "tenth ED doc",capacity = nEDdoc, queue_size = Inf,preemptive = F,preempt_order = "lifo") %>%
-                        add_resource(name="ICU bed", capacity=nICUbed, queue_size=Inf,preemptive=F,preempt_order = "lifo") %>%
-                        add_resource(name="Non-ICU bed", capacity=nNonICUbed, queue_size=(nNonICUbed/2),preemptive=F,preempt_order = "lifo")%>%
+                        add_resource(name = "quarter ED nurse",capacity = nEDnurse, queue_size = Inf,preemptive = F,preempt_order = "fifo") %>%
+                        add_resource(name = "Triage nurse",capacity = nTriageNurse, queue_size = Inf,preemptive = F,preempt_order = "fifo") %>%
+                        add_resource(name = "ED bed",capacity = nEDbed, queue_size = (nWaitingRoom),preemptive =F,preempt_order = "fifo") %>%
+                        add_resource(name = "tenth ED doc",capacity = nEDdoc, queue_size = Inf,preemptive = F,preempt_order = "fifo") %>%
+                        add_resource(name="ICU bed", capacity=nICUbed, queue_size=Inf,preemptive=F,preempt_order = "fifo") %>%
+                        add_resource(name="Non-ICU bed", capacity=nNonICUbed, queue_size=(nNonICUbed/2),preemptive=F,preempt_order = "fifo")%>%
                         
                         
-                        add_resource(name="Fast Track bed", capacity=nFTbeds, queue_size=(nFTbeds*2),preemptive=F,preempt_order = "lifo") %>%
-                        add_resource(name="fifth Fast Track nurse", capacity=nFTnurse, queue_size=Inf,preemptive=F,preempt_order = "lifo") %>%
-                        add_resource(name="fifteenth Fast Track doc", capacity=nFTdoc, queue_size=Inf,preemptive=F,preempt_order = "lifo")
+                        add_resource(name="Fast Track bed", capacity=nFTbeds, queue_size=(nFTbeds*2),preemptive=F,preempt_order = "fifo") %>%
+                        add_resource(name="fifth Fast Track nurse", capacity=nFTnurse, queue_size=Inf,preemptive=F,preempt_order = "fifo") %>%
+                        add_resource(name="fifteenth Fast Track doc", capacity=nFTdoc, queue_size=Inf,preemptive=F,preempt_order = "fifo")
                       
                       print("ping")
                       
