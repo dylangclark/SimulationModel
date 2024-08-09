@@ -28,7 +28,6 @@ library(reactable)
 library(reactablefmtr)
 library(viridis)
 library(stringr)
-library(rgdal)
 library(cowplot)
 library(janitor)
 
