@@ -176,7 +176,7 @@ shinyServer(function(input, output,session) {
       L<-as.numeric(unlist(L))
       L<-replace(L, L==0, 0.01)
       l_WI<-((8*60)/(L*PopRatio))
-      
+      # 8 hour window times 60mins per hour
     })
     
     l_EMS<-reactive({
@@ -190,6 +190,7 @@ shinyServer(function(input, output,session) {
       L<-as.numeric(unlist(L))
       L<-replace(L, L==0, 0.01)
       l_EMS<-((8*60)/(L*PopRatio))
+      # 8 hour window times 60mins per hour
     })
     
     #####
@@ -223,8 +224,8 @@ shinyServer(function(input, output,session) {
                       HWStartT<-HWStartTimes()
                       l_WI<-l_WI()
                       l_EMS<-l_EMS()
-                      HW_WI<-lapply(1:Ngen,function(i){rnorm(n=10000,mean=l_WI[i],sd=(mean=l_WI[i]*0.001))})
-                      HW_EMS<-lapply(1:Ngen,function(i){rnorm(n=10000,mean=l_EMS[i]*.9,sd=(mean=l_EMS[i]*0.001))})
+                      HW_WI<-lapply(1:Ngen,function(i){rnorm(n=1000,mean=l_WI[i]*.755,sd=(mean=l_WI[i]*0.01))})
+                      HW_EMS<-lapply(1:Ngen,function(i){rnorm(n=1000,mean=l_EMS[i]*.9,sd=(mean=l_EMS[i]*0.01))})
                 }else{}
                   
                     
@@ -275,14 +276,14 @@ shinyServer(function(input, output,session) {
                         
           ## Triage distributions non-HW patients
                         triageX<-c(1:5)
-                        ambulanceTriageProb<-c(0.015,0.25,0.350,0.40,0.001)
-                        walkinTriageProb<-c(0.0025,0.165,0.4190,0.3250,0.0727)
+                        ambulanceTriageProb<-c(0.015,0.18,0.350,0.40,0.005)
+                        walkinTriageProb<-c(0.0025,0.148,0.4190,0.330,0.0727)
                         
           ## Triage distributions HW patients
                         HWambulanceTriageProb<-c(0.14,0.25,0.30,0.33,0.005)
-                        HWwalkinTriageProb<-c(0.08,0.15,0.455,0.365,0.3)
+                        HWwalkinTriageProb<-c(0.08,0.17,0.455,0.367,0.22)
                         
-                        
+
                         
                         
         #### Patient set up
@@ -369,7 +370,8 @@ shinyServer(function(input, output,session) {
                         timeout(5)%>%
                         release_all("fifteenth Fast Track doc")%>%
                         timeout(15)%>%
-                        release("Fast Track bed",1)
+                        release("Fast Track bed",1)%>%
+                      set_attribute("Patients leave AMA",0)
                       
                       
                       #####            
@@ -382,16 +384,16 @@ shinyServer(function(input, output,session) {
                         seize("quarter ED nurse", 4)%>%
                         branch(option=function() ifelse(get_attribute(env, "SALT?")==0,1,2),continue=c(FALSE,FALSE),
                                trajectory("Run code blue") %>%
-                                 seize("quarter ED nurse",6)%>%
+                                 seize("quarter ED nurse",8)%>%
                                  seize("tenth ED doc",10)%>%
-                                 timeout(25)%>%
-                                 release("quarter ED nurse",6)%>%
+                                 timeout(30)%>%
+                                 release("quarter ED nurse",8)%>%
                                  release_all("tenth ED doc")%>%
                                  seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
                                  seize("Heatwave Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==1,1,0))%>%
-                                 set_attribute("Heatwave deaths",function()get_server_count(env,"Heatwave Morgue"))%>%
+                                 set_attribute("Heatwave deaths",function()ifelse(get_attribute(env,"Heatwave patient")==1 & get_attribute(env,"Patient dies")==1,1,0))%>%
                                  set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
-                                 timeout(5)%>%
+                                 timeout(30)%>%
                                  release_all("quarter ED nurse")%>%
                                  release_all("tenth ED doc")%>%
                                  release_all("ED bed"),
@@ -402,7 +404,7 @@ shinyServer(function(input, output,session) {
                                  release_all("tenth ED doc")%>%
                                  seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
                                  seize("Heatwave Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==1,1,0))%>%
-                                 set_attribute("Heatwave deaths",function()get_server_count(env,"Heatwave Morgue"))%>%
+                                 set_attribute("Heatwave deaths",function()ifelse(get_attribute(env,"Heatwave patient")==1 & get_attribute(env,"Patient dies")==1,1,0))%>%
                                  set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
                                  release_all("ED bed")
                                )
@@ -412,9 +414,12 @@ shinyServer(function(input, output,session) {
                           set_prioritization(c(6,7,FALSE))%>%
                           seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
                           seize("Heatwave Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==1,1,0))%>%
-                          set_attribute("Heatwave deaths",function()get_server_count(env,"Heatwave Morgue"))%>%
+                          set_attribute("Heatwave deaths",function()ifelse(get_attribute(env,"Heatwave patient")==1 & get_attribute(env,"Patient dies")==1,1,0))%>%
                           set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
-                          release_all("ED bed")
+                          timeout(90)%>%
+                          release_all("ED bed")%>%
+                          release_all("ICU bed")%>%
+                          release_all("Non-ICU bed")
                       #####
                       
                       
@@ -446,8 +451,8 @@ shinyServer(function(input, output,session) {
                                 })%>%
                           
                           ### Set number of ED hallway beds
-                                set_capacity("ED bed", value=function()ifelse(get_capacity(env,"ED bed")>nEDbed & get_seized(env, "ED bed")<(nEDbed-4),nEDbed,get_capacity(env,"ED bed")))%>%
-                                set_capacity("ED bed", value=function()ifelse(get_queue_count(env,"ED bed")>30 & get_capacity(env,"ED bed")==nEDbed,(nEDbed+10),nEDbed))%>%
+                                set_capacity("ED bed", value=function()ifelse(get_capacity(env,"ED bed")>nEDbed & get_seized(env, "ED bed")<(nEDbed-2),nEDbed,get_capacity(env,"ED bed")))%>%
+                                set_capacity("ED bed", value=function()ifelse(get_queue_count(env,"ED bed")>35 & get_capacity(env,"ED bed")==nEDbed,(nEDbed+4),nEDbed))%>%
                               
                           ### Start pt assessment
                                       #The higher the number, the higher the priority. Prempt is the minimum priority number that can prempt this patient
@@ -460,17 +465,17 @@ shinyServer(function(input, output,session) {
                                     timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=8),
                                                              ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=7),
                                                                     ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=1),0)))) %>%
-                          log_("seizing nurse", tag="EDNurseSeize")%>%          
+                         log_("seizing nurse", tag="EDNurseSeize")%>%          
                           seize("quarter ED nurse",function() get_attribute(env,"ED nurses siezed"))%>%
 
                                     timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=5),
                                                              ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=9),
                                                                     ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=2),0)))) %>%
                           seize("quarter ED nurse",1)%>%
-                          log_("waiting on dr",tag="EDDrSeize")%>%
-                          seize("tenth ED doc",5)%>%
+                           log_("waiting on dr",tag="EDDrSeize")%>%
+                          seize("tenth ED doc",7)%>%
                           set_attribute("IPAWait",function()as.numeric(as.numeric(now(env))-get_attribute(env,"ED arrival time")))%>%        
-                          log_("w/ doc for initial assessment")%>% 
+                          #log_("w/ doc for initial assessment")%>% 
                           timeout(function()ifelse(get_attribute(env,"triage score")>3.9,rpois(n=1,lambda=5),
                                                              ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=12),
                                                                     ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=10),10)))) %>%
@@ -482,7 +487,7 @@ shinyServer(function(input, output,session) {
                                 seize("quarter ED nurse",1)%>%
                              
                           ### Waiting on labs and imaging for tx
-                          log_("waiting on labs")%>%
+                          #log_("waiting on labs")%>%
                                      set_prioritization(values=function(){
                                       TS<-get_attribute(env,"triage score")
                                       if(TS==5){Prior<-2}else{Prior<-(5-TS)}
@@ -502,15 +507,15 @@ shinyServer(function(input, output,session) {
                           
                           ###
 
-                          log_("doc treating pt",tag="EDDrTx")%>%
+                           log_("doc treating pt",tag="EDDrTx")%>%
                           ### Start pt tx
                                     seize("tenth ED doc",8)%>%
                                     timeout(function()ifelse(get_attribute(env,"triage score")==5,rpois(n=1,lambda=4)^1.2,
-                                                              ifelse(get_attribute(env,"triage score")==4,rpois(n=1,lambda=7)^1.1,
+                                                              ifelse(get_attribute(env,"triage score")==4,rpois(n=1,lambda=7)^1.2,
                                                                 ifelse(get_attribute(env,"triage score")==3,rpois(n=1,lambda=7)^1.3,
                                                                     ifelse(get_attribute(env,"triage score")==2,rpois(n=1,lambda=7)^1.7,0))))) %>%
                                     release_all("tenth ED doc")%>%
-                          log_("doc done txing")%>%
+                          #log_("doc done txing")%>%
                                        set_prioritization(values=function(){
                                         TS<-get_attribute(env,"triage score")
                                         Prior<-(5-TS)
@@ -527,7 +532,7 @@ shinyServer(function(input, output,session) {
                           timeout(function()ifelse(get_attribute(env,"triage score")==3 & get_attribute(env,"Heatwave patient")==1 & CoolDecanting==1 ,rnorm(n=1,mean=90),0))%>%
                           timeout(function()ifelse(get_attribute(env,"triage score")>3 & get_attribute(env,"Heatwave patient")==1 & CoolDecanting==1 ,rnorm(n=1,mean=10),0))%>%
                           
-                          log_("discharging/admitting")%>%
+                          #log_("discharging/admitting")%>%
                           
                           ### ED transfer/discharge
                                     branch(option=function() ifelse(get_attribute(env, "triage score")==1,1,0), continue=FALSE,
@@ -565,8 +570,8 @@ shinyServer(function(input, output,session) {
                                              set_attribute("Non-ICU admit time",function()as.numeric(as.numeric(now(env))))%>%
                                              set_attribute("Patient ICU LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ICU admit time")))))%>%
                                              release_all("ICU bed")%>%
-                                             timeout(function()sample(size=1,rgamma(n=1000,shape=2.5,scale=2500))) %>%
-                                             renege_in(t=function()ifelse(rbinom(n=1,size=1,prob=0.05)==1,sample(size=1,replace=F,x=rgamma(n=1000,shape=1.8,scale=1000)),Inf),keep_seized = FALSE,
+                                             timeout(function()sample(size=1,rgamma(n=1000,shape=2.5,scale=2700))) %>%
+                                             renege_in(t=function()ifelse(rbinom(n=1,size=1,prob=0.01)==1,sample(size=1,replace=F,x=rgamma(n=1000,shape=1.8,scale=1000)),Inf),keep_seized = FALSE,
                                                        out=trajectory()%>%
                                                          set_attribute("Patients leave AMA",1)%>%
                                                          set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time")))))%>%
@@ -575,23 +580,26 @@ shinyServer(function(input, output,session) {
                                              
                                              set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time")))))%>%
                                              set_attribute("ALC start",function()as.numeric(as.numeric(now(env))))%>%
-                                             timeout(function()sample(size=1,rgamma(n=1000,shape=2,scale=900)))%>%
+                                             timeout(function()sample(size=1,rgamma(n=1000,shape=2,scale=890)))%>%
+                                             
+                                             set_attribute("ALC",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ALC start")))))%>%
+                                             timeout(120)%>%
                                              release_all("Non-ICU bed")%>%
-                                             set_attribute("ALC",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ALC start")))))
+                                             set_attribute("Patients leave AMA",0)
                                            
                                     )%>%
                                     
-                                    branch(option=function() ifelse(get_attribute(env, "triage score")==2,1,0),continue=FALSE,
+                                    branch(option=function() ifelse(get_attribute(env, "triage score")==2,1,0) | get_attribute(env, "dieHosWard")==1,continue=FALSE,
                                           trajectory("Non-ICU")%>%
                                              set_attribute("ED Boarding (start clock)",function()as.numeric(as.numeric(now(env))-45))%>%
                                              timeout(function()ifelse(get_attribute(env,"Heatwave patient")==1 & CoolDecanting==1 ,rpois(n=1,lambda=120)^1.1,0))%>%
                                              release_all("tenth ED doc")%>%
                                              release_all("quarter ED nurse")%>%
                                             
-                                             timeout(function()sample(size=1,rgamma(n=1000,shape=3,scale=270)))%>%
-                                             set_capacity("Non-ICU bed", value=function()ifelse(get_capacity(env,"Non-ICU bed")>nNonICUbed & get_seized(env, "Non-ICU bed")<(nNonICUbed-20),nNonICUbed,get_capacity(env,"Non-ICU bed")))%>%
-                                             set_capacity("Non-ICU bed", value=function()ifelse(get_queue_count(env,"Non-ICU bed")>3 & get_capacity(env,"Non-ICU bed")==nNonICUbed,(nNonICUbed+15),nNonICUbed))%>%
-                                             log_("Non-ICU admit",tag="NonICUAdmit")%>%
+                                             timeout(function()sample(size=1,rgamma(n=1000,shape=3,scale=265)))%>%
+                                             set_capacity("Non-ICU bed", value=function()ifelse(get_capacity(env,"Non-ICU bed")>nNonICUbed & get_seized(env, "Non-ICU bed")<(nNonICUbed-15),nNonICUbed,get_capacity(env,"Non-ICU bed")))%>%
+                                             set_capacity("Non-ICU bed", value=function()ifelse(get_queue_count(env,"Non-ICU bed")>5 & get_capacity(env,"Non-ICU bed")==nNonICUbed,(nNonICUbed+10),nNonICUbed))%>%
+                                           log_("Non-ICU admit",tag="NonICUAdmit")%>%
                                              seize("Non-ICU bed",1)%>%
                                              set_attribute("Non-ICU admit time",function()as.numeric(as.numeric(now(env))))%>%
                                              
@@ -607,34 +615,38 @@ shinyServer(function(input, output,session) {
                                                  set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time"))))+3600)%>%
                                                  release_all("Non-ICU bed")%>%
                                                  simmer::join(CodeBlue2)) %>%
-                                             renege_in(t=function()ifelse(rbinom(n=1,size=1,prob=0.05)==1,sample(size=1,replace=F,x=rgamma(n=1000,shape=1.8,scale=1000)),Inf),keep_seized = FALSE,
+                                             renege_in(t=function()ifelse(rbinom(n=1,size=1,prob=0.01)==1,sample(size=1,replace=F,x=rgamma(n=1000,shape=1.8,scale=1000)),Inf),keep_seized = FALSE,
                                                       out=trajectory()%>%
                                                         set_attribute("Patients leave AMA",1)%>%
                                                         set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time")))))%>%
                                                         release_all("Non-ICU bed")%>%
                                                         release_all("quarter ED nurse"))%>%
-                                             timeout(function()sample(size=1,rgamma(n=1000,shape=2.5,scale=2000),replace=F)) %>%
+                                             timeout(function()sample(size=1,rgamma(n=1000,shape=2.5,scale=1700),replace=F)) %>%
                                              set_attribute("ALC start",function()as.numeric(as.numeric(now(env))))%>%
-                                             timeout(function()sample(size=1,rgamma(n=1000,shape=4,scale=250),replace=F))%>%
-                                             release_all("Non-ICU bed")%>%
+                                             timeout(function()sample(size=1,rgamma(n=1000,shape=4,scale=240),replace=F))%>%
+                                             
                                              set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time"))+3500)))%>%
-                                             set_attribute("ALC",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ALC start")))))
+                                             set_attribute("ALC",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ALC start")))))%>%
+                                             timeout(120)%>%
+                                             release_all("Non-ICU bed")%>%
+                                             set_attribute("Patients leave AMA",0)
                                     ) %>%
                                     
                                     branch(option=function() ifelse(get_attribute(env, "triage score")==3,1,0), continue=FALSE,
                                              trajectory("ED discharge")%>%
-                                             log_("discharging (triage score 3)")%>%  
+                                            #log_("discharging (triage score 3)")%>%  
                                                release_all("tenth ED doc")%>%
                                                release_all("quarter ED nurse")%>%
                                                release_all("ED bed")%>%
-                                               set_attribute("Time in ED for middle severity",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED admit time"))))))%>%
-                                     
+                                               set_attribute("Time in ED for middle severity",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED admit time")))))%>%
+                                               set_attribute("Patients leave AMA",0))%>%  
                                     
-                                      log_("discharging (triage score 4 or 5)")%>%         
+                                           
                                      release_all("tenth ED doc")%>%
                                      release_all("quarter ED nurse")%>%
                                      release_all("ED bed")%>%
-                                     set_attribute("Time in ED for lowest severity",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED admit time")))))
+                                     set_attribute("Time in ED for lowest severity",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED admit time")))))%>%
+                                     set_attribute("Patients leave AMA",0)
                                            
                                                 
                                       
@@ -648,7 +660,7 @@ shinyServer(function(input, output,session) {
                           Hospital<-trajectory("Hospital") %>%
                             
                      ### Patient arrival
-                                  log_("ED arrival")%>%
+                                  #log_("ED arrival")%>%
     
                           handle_unfinished(trajectory()%>%
                                               release_all("ED bed")%>%
@@ -661,11 +673,7 @@ shinyServer(function(input, output,session) {
                                               simmer::join(EDAcute))%>%
                           
                           
-                                  set_attribute("Patients leave AMA",0)%>%
-                                    #handle_unfinished(
-                                      #trajectory() %>%
-                                      #log_("resolving unfinished")%>%
-                                      #timeout(1440))%>%
+                                  #set_attribute("Patients leave AMA",0)%>%
                                   set_attribute("ED arrival time",function()as.numeric(now(env)))%>%
                                   branch(option=function()ifelse(get_attribute(env, "mode of arrival")==0,1,0), continue=TRUE,
                                     trajectory()%>%
@@ -675,12 +683,12 @@ shinyServer(function(input, output,session) {
                                         release_all("Triage nurse"))%>%
                                     timeout(function()rnorm(1,mean=7,sd=1.5))%>%
                                     set_attribute(keys="Wait to triage patient",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))))%>%
-                                    log_("patient triaged")%>%
+                                    #log_("patient triaged")%>%
                     ### Test if die in waiting room
                                   branch(option=function() 
                                     ifelse(get_attribute(env, "Patient dies")>0 & get_attribute(env, "dieWaitingRoom")==1,1,0), continue=FALSE,
                                     trajectory()%>%
-                                      log_("patient dies in waiting room")%>%
+                                      #log_("patient dies in waiting room")%>%
                                       release_all("Ambulance")%>%
                                       release_all("Waiting room chair")%>%
                                       set_attribute("Ambulance off-load time",function()ifelse(get_attribute(env,"mode of arrival")==1,as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))),0))%>%
@@ -689,10 +697,10 @@ shinyServer(function(input, output,session) {
                                   log_("need chair", tag="WaitingRoom")%>%
                                   seize("Waiting room chair",1)%>%
                                   
-                                  renege_in(t=function()ifelse(get_attribute(env,"mode of arrival")==0 & get_attribute(env, "triage score")>3.9, sample(size=1,replace=T,x=rgamma(n=1000,shape=1.8,scale=200)),Inf),keep_seized = FALSE,
+                                  renege_in(t=function()ifelse(get_attribute(env,"mode of arrival")==0 & get_attribute(env, "triage score")>3.9 & get_attribute(env, "Patient dies")==0, sample(size=1,replace=T,x=rgamma(n=1000,shape=1.8,scale=200)),Inf),keep_seized = FALSE,
                                     out=trajectory()%>%
                                               set_attribute("Patients leave AMA",1)%>%
-                                              log_("leaving AMA")%>%
+                                              #log_("leaving AMA")%>%
                                               release_all("Ambulance")%>%
                                               release_all("Waiting room chair"))%>%
                                   
@@ -704,10 +712,9 @@ shinyServer(function(input, output,session) {
                                   branch(option=function() 
                                     ifelse(get_attribute(env, "FT?")==1,1,0), continue=FALSE,
                                     trajectory("FT")%>%
-                                      log_("going to FT")%>%
+                                      #log_("going to FT")%>%
                                       renege_abort()%>%
                                       timeout(10)%>%
-                                      set_attribute("Patients leave AMA",0)%>%
                                       set_attribute("Door to ED bed wait for FT bed",function()ifelse(get_attribute(env,"triage score")>3.9,as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))),NA))%>%
                                       release_all("Ambulance")%>%
                                       set_attribute("Ambulance off-load time",function()ifelse(get_attribute(env,"mode of arrival")==1,as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))),0))%>%
@@ -718,13 +725,12 @@ shinyServer(function(input, output,session) {
                                   timeout(1)%>%
                                   timeout(function()ifelse(get_attribute(env,"triage score")>3, rpois(n=1,lambda=60),0))%>%
                                   timeout(function()ifelse(get_attribute(env,"triage score")>3 & get_attribute(env,"mode of arrival")==0 & as.numeric(get_queue_count(env,"quarter ED nurse"))>1,rpois(n=1,lambda=120),0))%>%
-                                  timeout(function()ifelse(get_attribute(env,"triage score")==3 & get_attribute(env,"mode of arrival")==0 & as.numeric(get_queue_count(env,"quarter ED nurse"))>5,rpois(n=1,lambda=40),0))%>%
+                                  timeout(function()ifelse(get_attribute(env,"triage score")==3 & get_attribute(env,"mode of arrival")==0 & as.numeric(get_queue_count(env,"quarter ED nurse"))>5,rpois(n=1,lambda=40),10))%>%
                                   log_("ready for bed", tag="EDAdmit")%>%
                                   seize("ED bed",1)%>%
                                                 ### Test if die in ED
                                   renege_abort()%>%
-                                  log_("admitted to ED")%>%
-                                  set_attribute("Patients leave AMA",0)%>%
+                                  #log_("admitted to ED")%>%
                                   set_attribute("ED admit time",function()as.numeric(now(env)))%>%
                                   release_all("Waiting room chair")%>%
                                   set_attribute("Door to ED bed wait for highest severity",function()ifelse(get_attribute(env,"triage score")<2.1,as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))),NA))%>%
@@ -753,26 +759,27 @@ shinyServer(function(input, output,session) {
                                                reject=trajectory()%>%
                                                  #log_("no fire available for DOA")%>%
                                                  seize("police",1)%>%
-                                                 timeout(60)%>%
+                                                 timeout(90)%>%
                                                  seize("coroner",1)%>%
                                                  release_all("police")%>%
                                                  timeout(function()rnorm(n=1,mean=240))%>%
                                                  seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
                                                  seize("Heatwave Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==1,1,0))%>%
-                                                 set_attribute("Heatwave deaths",function()get_server_count(env,"Heatwave Morgue"))%>%
+                                                 set_attribute("Heatwave deaths",function()ifelse(get_attribute(env,"Heatwave patient")==1 & get_attribute(env,"Patient dies")==1,1,0))%>%
                                                  set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
                                                  release_all("coroner"))%>%
-                                         log_("DOA")%>% 
+                                         #log_("DOA")%>% 
                                          seize("police",1)%>%
+                                          timeout(15)%>%
                                          release_all("fire")%>%
-                                         timeout(60)%>%
-                                          log_("")%>%
+                                         timeout(90)%>%
+                                          #log_("")%>%
                                          seize("coroner",1)%>%
                                          release_all("police")%>%
                                          timeout(function()rnorm(n=1,mean=240))%>%
                                          seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
                                          seize("Heatwave Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==1,1,0))%>%
-                                         set_attribute("Heatwave deaths",function()get_server_count(env,"Heatwave Morgue"))%>%
+                                         set_attribute("Heatwave deaths",function()ifelse(get_attribute(env,"Heatwave patient")==1 & get_attribute(env,"Patient dies")==1,1,0))%>%
                                          set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
                                          release_all("coroner")%>%
                                         log_("DOA to morgue"),
@@ -780,9 +787,9 @@ shinyServer(function(input, output,session) {
                               
                                  trajectory("DOA and MCI")%>%
                                          ## dispatcher determines over the phone that no resources are deployed immediately
-                                          log_("Dispatercher SALT triage")%>%
+                                          #log_("Dispatercher SALT triage")%>%
                                           seize("family with body",1)%>%
-                                            log_("")%>%
+                                            #log_("")%>%
                                           seize("police",1)%>%
                                           timeout(45)%>%
                                           release_all("police")%>%
@@ -790,15 +797,15 @@ shinyServer(function(input, output,session) {
                                           timeout(function()rnorm(n=1,mean=120))%>%
                                            seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
                                            seize("Heatwave Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==1,1,0))%>%
-                                           set_attribute("Heatwave deaths",function()get_server_count(env,"Heatwave Morgue"))%>%
+                                           set_attribute("Heatwave deaths",function()ifelse(get_attribute(env,"Heatwave patient")==1 & get_attribute(env,"Patient dies")==1,1,0))%>%
                                            set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
                                           release_all("coroner"),
                                                  
                                   trajectory("Die prehos w/ provider and MCI")%>%
                                           simmer::select(resources=FirstResponder,policy="first-available",id=0)%>%
-                                          log_("")%>%
+                                          #log_("")%>%
                                           seize_selected(amount=1,id=0)%>%
-                                          log_("ambulance")%>%
+                                          #log_("ambulance")%>%
                                           seize("Ambulance",amount=function()ifelse(get_selected(env,id=0)=="Ambulance",0,1))%>%
                                           timeout(function()rnorm(n=1, mean=tAmbulanceResponse,sd=2))%>%
                                           set_attribute("Ambulance response time",function() as.numeric(as.numeric(now(env)-(get_attribute(env,"911 call time")))))%>%
@@ -808,7 +815,7 @@ shinyServer(function(input, output,session) {
                                           timeout(15)%>%
                                           seize("Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==0,1,0))%>%
                                           seize("Heatwave Morgue",function()ifelse(get_attribute(env,"Heatwave patient")==1,1,0))%>%
-                                          set_attribute("Heatwave deaths",function()get_server_count(env,"Heatwave Morgue"))%>%
+                                          set_attribute("Heatwave deaths",function()ifelse(get_attribute(env,"Heatwave patient")==1 & get_attribute(env,"Patient dies")==1,1,0))%>%
                                           set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
                                           release_all("Ambulance"),
                                         
@@ -819,7 +826,7 @@ shinyServer(function(input, output,session) {
                                           seize("Ambulance",amount=function()ifelse(get_selected(env,id=0)=="Ambulance",0,1))%>%
                                           timeout(function()rnorm(n=1, mean=tAmbulanceResponse,sd=1))%>%
                                           set_attribute("Ambulance response time",function() as.numeric(as.numeric(now(env)-(get_attribute(env,"911 call time")))))%>%
-                                          timeout(function()rnorm(n=1, mean=10,sd=3))%>%
+                                          timeout(function()rnorm(n=1, mean=12,sd=3))%>%
                                           release_all("fire")%>%
                                           timeout(function()rnorm(n=1, mean=tTransportToHosSiren,sd=2))%>%
                                            set_prioritization(values=function(){
@@ -833,12 +840,14 @@ shinyServer(function(input, output,session) {
                                  trajectory("1B High acuity not dead")%>%
                                    #log_("not dead but sick")%>%
                                    simmer::select(FirstResponder,policy="first-available",id=1)%>%
-                                    log_("")%>%
+                                    #log_("")%>%
                                    seize_selected(amount=1,id=1)%>%
                                    seize("Ambulance",amount=function()ifelse(get_selected(env,id=1)=="Ambulance",0,1))%>%
-                                  timeout(function()ifelse(get_attribute(env,"triage score")==1,rnorm(n=1, mean=4,sd=.5),rnorm(n=1,mean=tAmbulanceResponse,sd=1)))%>%
-                                    log_("")%>%
+                                  timeout(function()ifelse(get_attribute(env,"triage score")==1,rnorm(n=1, mean=4.25,sd=.5),rnorm(n=1,mean=tAmbulanceResponse,sd=1)))%>%
+                                    #log_("")%>%
                                    set_attribute("Ambulance response time",function() as.numeric(as.numeric(now(env)-(get_attribute(env,"911 call time")))))%>%
+                                    #txing pt
+                                   timeout(function()rnorm(n=1, mean=10,sd=3))%>%
                                    release_all("fire")%>%
                                    timeout(function()rnorm(n=1, mean=tTransportToHosSiren,sd=2))%>%
                                    set_prioritization(values=function(){
@@ -853,13 +862,16 @@ shinyServer(function(input, output,session) {
                       
                       LowAcuity<-trajectory()%>%
                         #log_("not too sick")%>%
-                        log_("ambulance")%>%
+                        #log_("ambulance")%>%
                         seize("Ambulance",amount=1)%>%
-                        timeout(function()ifelse(get_attribute(env,"triage score")==5,rnorm(n=1, mean=12,sd=3),
+                        timeout(function()ifelse(get_attribute(env,"triage score")==5,rnorm(n=1, mean=15,sd=3),
                                                  ifelse(get_attribute(env,"triage score")==4,rnorm(n=1, mean=12,sd=2),
-                                                        ifelse(get_attribute(env,"triage score")==3,rnorm(n=1, mean=8,sd=2),rnorm(n=1, mean=tAmbulanceResponse,sd=2))))) %>%
+                                                        ifelse(get_attribute(env,"triage score")==3,rnorm(n=1, mean=8.5,sd=2),rnorm(n=1, mean=tAmbulanceResponse,sd=2))))) %>%
                         
                         set_attribute("Ambulance response time",function() as.numeric(as.numeric(now(env)-(get_attribute(env,"911 call time")))))%>%
+                        
+                        timeout(function()rnorm(n=1, mean=12,sd=5))%>%
+                          #txed on scene not transporting
                         release_all("fire")%>%
                         timeout(function()rnorm(n=1, mean=tTransportToHos,sd=2))%>%
                         set_prioritization(values=function(){
@@ -935,21 +947,21 @@ shinyServer(function(input, output,session) {
                                                ifelse(get_attribute(env, "triage score")==5, 0,)))))) %>%
                         
                         #set dead or alive outcome
-                        set_attribute(keys="Patient dies",0)%>%
+                        #set_attribute(keys="Patient dies",0)%>%
                         #set_attribute(keys="Patient dies", values=function() rbinom(n=1,size=1,prob=0.35)) %>%
 
-                        set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.4),
-                                                                                   ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.04),
-                                                                                          ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.009),
-                                                                                                 ifelse(get_attribute(env, "triage score")==4,rbinom(n=1,size=1,prob=0.005),0)))))%>%
-                        set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
+                        set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.8),
+                                                                                   ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.57),
+                                                                                          ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.085),
+                                                                                                 ifelse(get_attribute(env, "triage score")==4,rbinom(n=1,size=1,prob=0.02),0)))))%>%
+                        #set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
                         
                         
                         #death distributions
                         set_attribute(keys="dieWaitingRoom", values=function()
-                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.05),0)) %>%
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.01),0)) %>%
                         set_attribute(keys="dieED", values=function()
-                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.75),0)) %>%
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.3),0)) %>%
                         set_attribute(keys="dieHosWard", values=function()
                           ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=1),0))%>%
                         
@@ -1003,25 +1015,26 @@ shinyServer(function(input, output,session) {
                                                       ifelse(get_attribute(env, "triage score")==5, 0,)))))) %>%
                         
                         #set dead or alive outcome
-                        set_attribute(keys="Patient dies",0)%>%
+                        #set_attribute(keys="Patient dies",0)%>%
                         #set_attribute(keys="Patient dies", values=function()rbinom(n=1,size=1,prob=0.45)) %>%
                         
-                        set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.5),
-                                                                                   ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.05),
-                                                                                          ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.009),
-                                                                                                 ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.005),0)))))%>%
-                        set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
+                        set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.9),
+                                                                                   ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.65),
+                                                                                          ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.085),
+                                                                                                 ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.025),0)))))%>%
+                        #set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
                         
                         
                         
                         #death distributions
                         set_attribute(keys="DOA", values=function()
-                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.3),0)) %>%
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.35),0)) %>%
                         set_attribute(keys="diePreHos", values=function()
-                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=1),0)) %>%
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=.05),0)) %>%
                         set_attribute(keys="dieWaitingRoom", 0) %>%
-                        set_attribute(keys="dieED",1) %>%
-                        set_attribute(keys="dieHosWard",0) %>%
+                        set_attribute(keys="dieED",values=function()
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.3),0)) %>%
+                        set_attribute(keys="dieHosWard",1) %>%
                         
                         
                         #set if death needs coroner
@@ -1080,12 +1093,12 @@ shinyServer(function(input, output,session) {
                         
                         #set dead or alive outcome
                         
-                        set_attribute(keys="Patient dies",0)%>%
+                        #set_attribute(keys="Patient dies",0)%>%
                         set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.4),
-                                                                                   ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.04),
+                                                                                   ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.032),
                                                                                        ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.009),
                                                                                               ifelse(get_attribute(env, "triage score")==4,rbinom(n=1,size=1,prob=0.005),0)))))%>%
-                        set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
+                        #set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
                         
                         #death distributions
                         set_attribute(keys="dieWaitingRoom", values=function()
@@ -1099,7 +1112,7 @@ shinyServer(function(input, output,session) {
                         
                         #Set surge capacity for staffing and night ambulance shift
                             set_capacity("Ambulance",value=function()ifelse(SurgeStaff==1 & now(env)>40320 & now(env)<54720, (nAmbulance+2),
-                                                                      ifelse(SurgeStaff==0 & (now(env)/1440-now(env)%/%1440)*24<7 & (now(env)/1440-now(env)%/%1440)*24<20,(nAmbulance-2),nAmbulance)))%>%
+                                                                      ifelse(SurgeStaff==0 & (now(env)/1440-now(env)%/%1440)*24<7 & (now(env)/1440-now(env)%/%1440)*24<20,(nAmbulance-3),nAmbulance)))%>%
                       
                             set_capacity("fire",value=function()ifelse(SurgeStaff==1 & now(env)>40320 & now(env)<54720,3,nFire))%>%
                             set_capacity("quarter ED nurse",value=function()ifelse(SurgeStaff==1 & now(env)>40320 & now(env)<54720,32,nEDnurse))%>%
@@ -1140,12 +1153,12 @@ shinyServer(function(input, output,session) {
                       
                         
                         #set dead or alive outcome
-                        set_attribute(keys="Patient dies",0)%>%
+                        #set_attribute(keys="Patient dies",0)%>%
                         set_attribute(keys="Patient dies", values=function()ifelse(get_attribute(env, "triage score")==1,rbinom(n=1,size=1,prob=0.4),
                                                                                    ifelse(get_attribute(env, "triage score")==2,rbinom(n=1,size=1,prob=0.051),
                                                                                           ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.00986),
                                                                                                  ifelse(get_attribute(env, "triage score")==3,rbinom(n=1,size=1,prob=0.00672),0)))))%>%
-                        set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
+                        #set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
                         
                         
                         #set resource usage
@@ -1163,7 +1176,7 @@ shinyServer(function(input, output,session) {
                                                       ifelse(get_attribute(env, "triage score")==5, 0,)))))) %>%
                         
                         
-                        set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
+                        #set_attribute(keys="Patient dies",value=function()ifelse(get_attribute(env,"Patient dies")>0,1,0))%>%
                         
                         #death distributions
                         set_attribute(keys="DOA", values=function()
@@ -1227,7 +1240,7 @@ shinyServer(function(input, output,session) {
                                    PatientName_EMS<-paste0("EMS_HW patient ",i,"- ")
                                    
                                       add_generator(env,name_prefix=PatientName_WI,trajectory=HW_WalkInPatient, 
-                                                    from_to(start_time=HWStartT[i],stop_time=HWStopT[i], dist=function()sample(HW_WI[[i]],size=1,replace=F),arrive=T),
+                                                    from_to(start_time=HWStartT[i],stop_time=HWStopT[i], dist=function()sample(HW_WI[[i]],size=1,replace=F),arrive=F),
                                                     priority=0,preemptible=0,restart=F,mon=2)
                                       add_generator(env,name_prefix=PatientName_EMS,trajectory=HW_EMSPatient, 
                                                     from_to(start_time=HWStartT[i],stop_time=HWStopT[i], dist=function()sample(HW_EMS[[i]],size=1,replace=F),arrive=F),
@@ -1326,36 +1339,39 @@ shinyServer(function(input, output,session) {
   
   output$Simmer1<-renderPlot({
     req(Hmodel)
+    req(input$Graphics)
+        Graphics<-reactive(input$Graphics)      
+        if(Graphics()==F){}else{
     
-    nRunDays<-input$RunTime
-    eT<-nRunDays*1440
-    breaks<-seq(0,eT,by=1440)
-    
-    resourceSelect<-input$Resource
-    resources<-get_mon_resources(Hmodel())
-    
-    plot(resources,metric="usage", resourceSelect, steps=T) +
-      scale_x_continuous(breaks=breaks)+
-      xlab("Model time (in minutes)")+
-      theme(plot.background = element_rect(fill = "#F5FBFA")) +
-      theme(panel.background = element_rect(fill = "#F5FBFA")) +
-      theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-      theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-            plot.title.position = "plot") +
-      theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-      theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-            plot.caption.position = "plot") +
-      theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-      theme(axis.text = element_text(size = 10)) +
-      theme(panel.grid.minor.x = element_blank()) +
-      theme(axis.line.x = element_line(colour = "#545F66")) +
-      theme(axis.line.y = element_blank()) +
-      theme(axis.ticks = element_blank()) +
-      theme(legend.position = "bottom")+
-      theme(legend.key = element_rect(fill = "#F5FBFA", colour = NA))+
-      theme(strip.background = element_blank())+
-      theme(legend.background = element_rect(fill = "#F5FBFA"))
-    
+        nRunDays<-input$RunTime
+        eT<-nRunDays*1440
+        breaks<-seq(0,eT,by=1440)
+        
+        resourceSelect<-input$Resource
+        resources<-get_mon_resources(Hmodel())
+        
+        plot(resources,metric="usage", resourceSelect, steps=T) +
+          scale_x_continuous(breaks=breaks)+
+          xlab("Model time (in minutes)")+
+          theme(plot.background = element_rect(fill = "#F5FBFA")) +
+          theme(panel.background = element_rect(fill = "#F5FBFA")) +
+          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                plot.title.position = "plot") +
+          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                plot.caption.position = "plot") +
+          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+          theme(axis.text = element_text(size = 10)) +
+          theme(panel.grid.minor.x = element_blank()) +
+          theme(axis.line.x = element_line(colour = "#545F66")) +
+          theme(axis.line.y = element_blank()) +
+          theme(axis.ticks = element_blank()) +
+          theme(legend.position = "bottom")+
+          theme(legend.key = element_rect(fill = "#F5FBFA", colour = NA))+
+          theme(strip.background = element_blank())+
+          theme(legend.background = element_rect(fill = "#F5FBFA"))
+        }
   })
 
     # Model parameter graphics    
@@ -1922,173 +1938,188 @@ shinyServer(function(input, output,session) {
     #Model charts
   output$Simmer2<-renderPlot({
     req(Hmodel)
-    
-    nRunDays<-input$RunTime
-    eT<-nRunDays*1440
-    breaks<-seq(0,eT,by=1440)
-    
-    arrive<-get_mon_arrivals(Hmodel())
-    
-    plot(arrive,metric="waiting_time")+
-      scale_x_continuous(breaks=breaks)+
-      xlab("Model time (in minutes)")+
-      theme(plot.background = element_rect(fill = "#F5FBFA")) +
-      theme(panel.background = element_rect(fill = "#F5FBFA")) +
-      theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-      theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-            plot.title.position = "plot") +
-      theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-      theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-            plot.caption.position = "plot") +
-      theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-      theme(axis.text = element_text(size = 10)) +
-      theme(panel.grid.minor.x = element_blank()) +
-      theme(axis.line.x = element_line(colour = "#545F66")) +
-      theme(axis.line.y = element_blank()) +
-      theme(axis.ticks = element_blank()) +
-      theme(legend.position = "bottom")+
-      theme(legend.key = element_rect(fill = "#F5FBFA"))+
-      theme(strip.background = element_blank())
-    
+    req(input$Graphics)
+      Graphics<-reactive(input$Graphics)      
+      if(Graphics()==F){}else{
+      nRunDays<-input$RunTime
+      eT<-nRunDays*1440
+      breaks<-seq(0,eT,by=1440)
+      
+      arrive<-get_mon_arrivals(Hmodel(),ongoing=T)
+      
+      plot(arrive,metric="waiting_time")+
+        scale_x_continuous(breaks=breaks)+
+        xlab("Model time (in minutes)")+
+        theme(plot.background = element_rect(fill = "#F5FBFA")) +
+        theme(panel.background = element_rect(fill = "#F5FBFA")) +
+        theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+        theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+              plot.title.position = "plot") +
+        theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+        theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+              plot.caption.position = "plot") +
+        theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+        theme(axis.text = element_text(size = 10)) +
+        theme(panel.grid.minor.x = element_blank()) +
+        theme(axis.line.x = element_line(colour = "#545F66")) +
+        theme(axis.line.y = element_blank()) +
+        theme(axis.ticks = element_blank()) +
+        theme(legend.position = "bottom")+
+        theme(legend.key = element_rect(fill = "#F5FBFA"))+
+        theme(strip.background = element_blank())
+      }
   })
   
   output$Simmer3<-renderPlot({
     req(Hmodel)
-    
-    nRunDays<-input$RunTime
-    eT<-nRunDays*1440
-    breaks<-seq(0,eT,by=1440)
-    
-    arrival<-get_mon_arrivals(Hmodel())
-    plot(arrival,metric="flow_time")+
-      scale_x_continuous(breaks=breaks)+
-      xlab("Model time (in minutes)")+
-      theme(plot.background = element_rect(fill = "#F5FBFA")) +
-      theme(panel.background = element_rect(fill = "#F5FBFA")) +
-      theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-      theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-            plot.title.position = "plot") +
-      theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-      theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-            plot.caption.position = "plot") +
-      theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-      theme(axis.text = element_text(size = 10)) +
-      theme(panel.grid.minor.x = element_blank()) +
-      theme(axis.line.x = element_line(colour = "#545F66")) +
-      theme(axis.line.y = element_blank()) +
-      theme(axis.ticks = element_blank()) +
-      theme(legend.position = "bottom")+
-      theme(legend.key = element_rect(fill = "#F5FBFA"))+
-      theme(strip.background = element_blank())
-    
+    req(input$Graphics)
+      Graphics<-reactive(input$Graphics)      
+      if(Graphics()==F){}else{
+        nRunDays<-input$RunTime
+        eT<-nRunDays*1440
+        breaks<-seq(0,eT,by=1440)
+        
+        arrival<-get_mon_arrivals(Hmodel())
+        plot(arrival,metric="flow_time")+
+          scale_x_continuous(breaks=breaks)+
+          xlab("Model time (in minutes)")+
+          theme(plot.background = element_rect(fill = "#F5FBFA")) +
+          theme(panel.background = element_rect(fill = "#F5FBFA")) +
+          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                plot.title.position = "plot") +
+          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                plot.caption.position = "plot") +
+          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+          theme(axis.text = element_text(size = 10)) +
+          theme(panel.grid.minor.x = element_blank()) +
+          theme(axis.line.x = element_line(colour = "#545F66")) +
+          theme(axis.line.y = element_blank()) +
+          theme(axis.ticks = element_blank()) +
+          theme(legend.position = "bottom")+
+          theme(legend.key = element_rect(fill = "#F5FBFA"))+
+          theme(strip.background = element_blank())
+      }
   })
   
   output$Simmer4<-renderPlot({
     req(Hmodel)
-    nRunDays<-input$RunTime
-    eT<-nRunDays*1440
-    breaks<-seq(0,eT,by=1440)
-    
-    
-    attribute<-Hmodel()
-    attribute<-get_mon_attributes(Hmodel())
-    
-    attribute<-attribute%>%
-      dplyr::filter(attribute$key %in% c("Ambulance off-load time","Ambulance response time","Door to ED bed wait for highest severity","Door to ED bed wait for lowest severity","Door to ED bed wait for FT bed",
-          "Time in ED for lowest severity","Time in ED for middle severity","Time in ED for highest severity","Wait to triage patient","ED boarding time for ICU","ED boarding time for Non-ICU","ALC"))
-    
-    plot(attribute)+
-      scale_x_continuous(breaks=breaks)+
-      xlab("Model time (in minutes)")+
-      ylab("Minutes")+
-      ylim(0,1000)+
-      theme(plot.background = element_rect(fill = "#F5FBFA")) +
-      theme(panel.background = element_rect(fill = "#F5FBFA")) +
-      theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-      theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-            plot.title.position = "plot") +
-      theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-      theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-            plot.caption.position = "plot") +
-      theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-      theme(axis.text = element_text(size = 10)) +
-      theme(panel.grid.minor.x = element_blank()) +
-      theme(axis.line.x = element_line(colour = "#545F66")) +
-      theme(axis.line.y = element_blank()) +
-      theme(axis.ticks = element_blank()) +
-      theme(legend.position = "bottom")
-    
+    req(input$Graphics)
+      Graphics<-reactive(input$Graphics)      
+      if(Graphics()==F){}else{
+      
+        nRunDays<-input$RunTime
+        eT<-nRunDays*1440
+        breaks<-seq(0,eT,by=1440)
+        
+        
+        attribute<-Hmodel()
+        attribute<-get_mon_attributes(Hmodel())
+        
+        attribute<-attribute%>%
+          dplyr::filter(attribute$key %in% c("Ambulance off-load time","Ambulance response time","Door to ED bed wait for highest severity","Door to ED bed wait for lowest severity","Door to ED bed wait for FT bed",
+              "Time in ED for lowest severity","Time in ED for middle severity","Time in ED for highest severity","Wait to triage patient","ED boarding time for ICU","ED boarding time for Non-ICU","ALC"))
+        
+        plot(attribute)+
+          scale_x_continuous(breaks=breaks)+
+          xlab("Model time (in minutes)")+
+          ylab("Minutes")+
+          ylim(0,1000)+
+          theme(plot.background = element_rect(fill = "#F5FBFA")) +
+          theme(panel.background = element_rect(fill = "#F5FBFA")) +
+          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                plot.title.position = "plot") +
+          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                plot.caption.position = "plot") +
+          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+          theme(axis.text = element_text(size = 10)) +
+          theme(panel.grid.minor.x = element_blank()) +
+          theme(axis.line.x = element_line(colour = "#545F66")) +
+          theme(axis.line.y = element_blank()) +
+          theme(axis.ticks = element_blank()) +
+          theme(legend.position = "bottom")
+      }
   })
   
   output$Simmer4.5<-renderPlot({
     req(Hmodel)
-    nRunDays<-input$RunTime
-    eT<-nRunDays*1440
-    breaks<-seq(0,eT,by=1440)
-    
-    
-    attribute<-Hmodel()
-    attribute<-get_mon_attributes(Hmodel())
-    
-    attribute<-attribute%>%
-      dplyr::filter(attribute$key %in% c("ED boarding time for ICU","ED boarding time for Non-ICU","Patient ICU LOS","Patient Non-ICU ward LOS"))
-    
-    plot(attribute)+
-      scale_x_continuous(breaks=breaks)+
-      xlab("Model time (in minutes)")+
-      ylab("Minutes")+
-      ylim(0,15000)+
-      theme(plot.background = element_rect(fill = "#F5FBFA")) +
-      theme(panel.background = element_rect(fill = "#F5FBFA")) +
-      theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-      theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-            plot.title.position = "plot") +
-      theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-      theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-            plot.caption.position = "plot") +
-      theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-      theme(axis.text = element_text(size = 10)) +
-      theme(panel.grid.minor.x = element_blank()) +
-      theme(axis.line.x = element_line(colour = "#545F66")) +
-      theme(axis.line.y = element_blank()) +
-      theme(axis.ticks = element_blank()) +
-      theme(legend.position = "bottom")
-    
+    req(input$Graphics)
+      Graphics<-reactive(input$Graphics)      
+      if(Graphics()==F){}else{
+      
+        nRunDays<-input$RunTime
+        eT<-nRunDays*1440
+        breaks<-seq(0,eT,by=1440)
+        
+        
+        attribute<-Hmodel()
+        attribute<-get_mon_attributes(Hmodel())
+        
+        attribute<-attribute%>%
+          dplyr::filter(attribute$key %in% c("ED boarding time for ICU","ED boarding time for Non-ICU","Patient ICU LOS","Patient Non-ICU ward LOS"))
+        
+        plot(attribute)+
+          scale_x_continuous(breaks=breaks)+
+          xlab("Model time (in minutes)")+
+          ylab("Minutes")+
+          ylim(0,15000)+
+          theme(plot.background = element_rect(fill = "#F5FBFA")) +
+          theme(panel.background = element_rect(fill = "#F5FBFA")) +
+          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                plot.title.position = "plot") +
+          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                plot.caption.position = "plot") +
+          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+          theme(axis.text = element_text(size = 10)) +
+          theme(panel.grid.minor.x = element_blank()) +
+          theme(axis.line.x = element_line(colour = "#545F66")) +
+          theme(axis.line.y = element_blank()) +
+          theme(axis.ticks = element_blank()) +
+          theme(legend.position = "bottom")
+      }
   })
   
   output$Simmer5<-renderPlot({
     req(Hmodel)
-    nRunDays<-input$RunTime
-    eT<-nRunDays*1440
-    breaks<-seq(0,eT,by=1440)
-    
-    
-    attribute<-Hmodel()
-    attribute<-get_mon_attributes(Hmodel())
-    
-    attribute<-attribute%>%
-      dplyr::filter(attribute$key %in% c("Ambulances available","Heatwave patient", "Heatwave deaths", "Patients leave AMA", "Total deaths", "SALT?"))
-    
-    plot(attribute)+
-      scale_x_continuous(breaks=breaks)+
-      xlab("Model time (in minutes)")+
-      ylab("Count")+
-      theme(plot.background = element_rect(fill = "#F5FBFA")) +
-      theme(panel.background = element_rect(fill = "#F5FBFA")) +
-      theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-      theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-            plot.title.position = "plot") +
-      theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-      theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-            plot.caption.position = "plot") +
-      theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-      theme(axis.text = element_text(size = 10)) +
-      theme(panel.grid.minor.x = element_blank()) +
-      theme(axis.line.x = element_line(colour = "#545F66")) +
-      theme(axis.line.y = element_blank()) +
-      theme(axis.ticks = element_blank()) +
-      theme(legend.position = "bottom")
-    
+    req(input$Graphics)
+      Graphics<-reactive(input$Graphics)      
+      if(Graphics()==F){}else{
+        nRunDays<-input$RunTime
+        eT<-nRunDays*1440
+        breaks<-seq(0,eT,by=1440)
+        
+        
+        attribute<-Hmodel()
+        attribute<-get_mon_attributes(Hmodel())
+        
+        attribute<-attribute%>%
+          dplyr::filter(attribute$key %in% c("Ambulances available","Heatwave patient", "Patients leave AMA", "Total deaths", "SALT?"))
+        
+        plot(attribute)+
+          scale_x_continuous(breaks=breaks)+
+          xlab("Model time (in minutes)")+
+          ylab("Count")+
+          theme(plot.background = element_rect(fill = "#F5FBFA")) +
+          theme(panel.background = element_rect(fill = "#F5FBFA")) +
+          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                plot.title.position = "plot") +
+          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                plot.caption.position = "plot") +
+          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+          theme(axis.text = element_text(size = 10)) +
+          theme(panel.grid.minor.x = element_blank()) +
+          theme(axis.line.x = element_line(colour = "#545F66")) +
+          theme(axis.line.y = element_blank()) +
+          theme(axis.ticks = element_blank()) +
+          theme(legend.position = "bottom")
+      }
   })
 
     #Model print of all patients and Monte Carlo
@@ -2487,210 +2518,146 @@ shinyServer(function(input, output,session) {
           output$Dist1<-renderPlot({
             req(DF_Dist)
             df<-DF_Dist()
-            HWStart<-HWStartTimes()
-            HWStart<-HWStart[1]
-            HWStop<-HWStopTimes()
-            HWStop<-HWStop[24]
-            
-            #simulation period
-            for(i in (1:nrow(df))){
-              actTime<-df[i,4]
-              if(actTime>HWStart & actTime<HWStop){v<-"heatwave"} else if (actTime<HWStart & actTime>(1440*16)){v<-"baseline"}else if (actTime>HWStop & actTime<(HWStop+(1440*7))) {v<-"post_heatwave"}else{v<-"ramping"}
-              if(exists("vec")){
-                vec<-c(vec,v)
-              }else{
-                vec<-v
+            req(input$Graphics)
+              Graphics<-reactive(input$Graphics)      
+              if(Graphics()==F){}else{
+              
+                HWStart<-HWStartTimes()
+                HWStart<-HWStart[1]
+                HWStop<-HWStopTimes()
+                HWStop<-HWStop[24]
+                
+                #simulation period
+                for(i in (1:nrow(df))){
+                  actTime<-df[i,4]
+                  if(actTime>HWStart & actTime<HWStop){v<-"heatwave"} else if (actTime<HWStart & actTime>(1440*16)){v<-"baseline"}else if (actTime>HWStop & actTime<(HWStop+(1440*7))) {v<-"post_heatwave"}else{v<-"ramping"}
+                  if(exists("vec")){
+                    vec<-c(vec,v)
+                  }else{
+                    vec<-v
+                  }
+                }
+                df$simulation_period<-vec
+                
+                heatwave_non<-c(
+                  'baseline' = "Baseline period",
+                  'heatwave' = "Heatwave period",
+                  'post_heatwave'="Post heatwave",
+                  'ramping'='Model ramping up')
+                
+                ggplot(df, aes(x=triage_score, fill=simulation_period))+
+                  geom_bar()+
+                  facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
+                  xlab("Triage score") +
+                  ylab("Count of patients")+
+                  labs(title="Distribution of CTAS Triage Scores")+
+                  theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+                  theme(plot.background = element_rect(fill = "#F5FBFA")) +
+                  theme(panel.background = element_rect(fill = "#F5FBFA")) +
+                  theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+                  theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                        plot.title.position = "plot") +
+                  theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+                  theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                        plot.caption.position = "plot") +
+                  theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+                  theme(axis.text = element_text(size = 10)) +
+                  theme(panel.grid.minor.x = element_blank()) +
+                  theme(axis.line.x = element_line(colour = "#545F66")) +
+                  theme(axis.line.y = element_blank()) +
+                  theme(axis.ticks = element_blank()) +
+                  theme(legend.position = "none")+
+                  theme(strip.background = element_blank())
               }
-            }
-            df$simulation_period<-vec
-            
-            heatwave_non<-c(
-              'baseline' = "Baseline period",
-              'heatwave' = "Heatwave period",
-              'post_heatwave'="Post heatwave",
-              'ramping'='Model ramping up')
-            
-            ggplot(df, aes(x=triage_score, fill=simulation_period))+
-              geom_bar()+
-              facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
-              xlab("Triage score") +
-              ylab("Count of patients")+
-              labs(title="Distribution of CTAS Triage Scores")+
-              theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
-              theme(plot.background = element_rect(fill = "#F5FBFA")) +
-              theme(panel.background = element_rect(fill = "#F5FBFA")) +
-              theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-              theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-                    plot.title.position = "plot") +
-              theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-              theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-                    plot.caption.position = "plot") +
-              theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-              theme(axis.text = element_text(size = 10)) +
-              theme(panel.grid.minor.x = element_blank()) +
-              theme(axis.line.x = element_line(colour = "#545F66")) +
-              theme(axis.line.y = element_blank()) +
-              theme(axis.ticks = element_blank()) +
-              theme(legend.position = "none")+
-              theme(strip.background = element_blank())
-        
           })
       
       #Triage time by triage level
           output$Dist2<-renderPlot({
             req(DF_Dist)
-            df<-DF_Dist()
-            HWStart<-HWStartTimes()
-            HWStart<-HWStart[1]
-            HWStop<-HWStopTimes()
-            HWStop<-HWStop[24]
-            
-          ####
-            # Edits to df ####
-            df$ed_admit_time<-as.numeric(df$ed_admit_time)
-            df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
-            df<-df %>%
-              mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
-            
-            df<-df %>%
-              mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
-            
-            #simulation period
-            for(i in (1:nrow(df))){
-              actTime<-df[i,4]
-              if(actTime<43200 & actTime>23040){v<-"baseline"}else if(actTime>HWStart & actTime<HWStop){v<-"heatwave"}else if(actTime>HWStop & actTime<HWStop+(1440*7)){v<-"post_heatwave"}else{v<-"ramping"}
-              if(exists("vec")){
-                vec<-c(vec,v)
-              }else{
-                vec<-v
+            req(input$Graphics)
+              Graphics<-reactive(input$Graphics)      
+              if(Graphics()==F){}else{
+              
+                df<-DF_Dist()
+                HWStart<-HWStartTimes()
+                HWStart<-HWStart[1]
+                HWStop<-HWStopTimes()
+                HWStop<-HWStop[24]
+                
+              ####
+                # Edits to df ####
+                df$ed_admit_time<-as.numeric(df$ed_admit_time)
+                df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
+                df<-df %>%
+                  mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
+                
+                df<-df %>%
+                  mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
+                
+                #simulation period
+                for(i in (1:nrow(df))){
+                  actTime<-df[i,4]
+                  if(actTime<43200 & actTime>23040){v<-"baseline"}else if(actTime>HWStart & actTime<HWStop){v<-"heatwave"}else if(actTime>HWStop & actTime<HWStop+(1440*7)){v<-"post_heatwave"}else{v<-"ramping"}
+                  if(exists("vec")){
+                    vec<-c(vec,v)
+                  }else{
+                    vec<-v
+                  }
+                }
+                df$simulation_period<-vec
+                
+                #ward status
+                for(i in (1:nrow(df))){
+                  if(!is.na(df[i,34])){ws<-"ICU"
+                  }else if(!is.na(df[i,38])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
+                  if(exists("vec2")){
+                    vec2<-c(vec2,ws)
+                  }else{
+                    vec2<-ws
+                  }
+                }
+                df$ward_status<-as.factor(vec2)
+              #####
+              
+                heatwave_non<-c(
+                  'baseline' = "Baseline period",
+                  'heatwave' = "Heatwave period",
+                  'post_heatwave'="Post heatwave",
+                  'ramping'="Model warmup")
+                
+                ggplot(df, aes(x=triage_score, y=time_in_ed_all))+
+                  geom_jitter(aes(color=ward_status))+
+                  facet_wrap(~factor(simulation_period),scales = "fixed",labeller=as_labeller(heatwave_non))+
+                  xlab("Triage score") +
+                  ylab("Time in ED (minutes)")+
+                  labs(title="Distribution of time in ED by triage scores and ward admission status")+
+                  theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+                  theme(plot.background = element_rect(fill = "#F5FBFA")) +
+                  theme(panel.background = element_rect(fill = "#F5FBFA")) +
+                  theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+                  theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                        plot.title.position = "plot") +
+                  theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+                  theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                        plot.caption.position = "plot") +
+                  theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+                  theme(axis.text = element_text(size = 10)) +
+                  theme(panel.grid.minor.x = element_blank()) +
+                  theme(axis.line.x = element_line(colour = "#545F66")) +
+                  theme(axis.line.y = element_blank()) +
+                  theme(axis.ticks = element_blank()) +
+                  theme(legend.position = "right")+
+                  theme(strip.background = element_blank())
               }
-            }
-            df$simulation_period<-vec
-            
-            #ward status
-            for(i in (1:nrow(df))){
-              if(!is.na(df[i,34])){ws<-"ICU"
-              }else if(!is.na(df[i,38])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
-              if(exists("vec2")){
-                vec2<-c(vec2,ws)
-              }else{
-                vec2<-ws
-              }
-            }
-            df$ward_status<-as.factor(vec2)
-          #####
-          
-            heatwave_non<-c(
-              'baseline' = "Baseline period",
-              'heatwave' = "Heatwave period",
-              'post_heatwave'="Post heatwave",
-              'ramping'="Model warmup")
-            
-            ggplot(df, aes(x=triage_score, y=time_in_ed_all))+
-              geom_jitter(aes(color=ward_status))+
-              facet_wrap(~factor(simulation_period),scales = "fixed",labeller=as_labeller(heatwave_non))+
-              xlab("Triage score") +
-              ylab("Time in ED (minutes)")+
-              labs(title="Distribution of time in ED by triage scores and ward admission status")+
-              theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
-              theme(plot.background = element_rect(fill = "#F5FBFA")) +
-              theme(panel.background = element_rect(fill = "#F5FBFA")) +
-              theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-              theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-                    plot.title.position = "plot") +
-              theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-              theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-                    plot.caption.position = "plot") +
-              theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-              theme(axis.text = element_text(size = 10)) +
-              theme(panel.grid.minor.x = element_blank()) +
-              theme(axis.line.x = element_line(colour = "#545F66")) +
-              theme(axis.line.y = element_blank()) +
-              theme(axis.ticks = element_blank()) +
-              theme(legend.position = "right")+
-              theme(strip.background = element_blank())
-            
           })
           
       #Ambulance response time by triage level
           output$Dist3<-renderPlot({
         req(DF_Dist)
-        df<-DF_Dist()
-        HWStart<-HWStartTimes()
-        HWStart<-HWStart[1]
-        HWStop<-HWStopTimes()
-        HWStop<-HWStop[24]
-        
-        ####
-        # Edits to df ####
-        df$ed_admit_time<-as.numeric(df$ed_admit_time)
-        df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
-        df<-df %>%
-          mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
-        
-        df<-df %>%
-          mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
-        
-        #simulation period
-        for(i in (1:nrow(df))){
-          actTime<-df[i,4]
-          if(actTime<HWStart & actTime>23040){v<-"baseline"}else if(actTime>HWStart & actTime<HWStop){v<-"heatwave"}else if(actTime>HWStop & actTime<HWStop+(1440*7)){v<-"post_heatwave"}else{v<-"ramping"}
-          if(exists("vec")){
-            vec<-c(vec,v)
-          }else{
-            vec<-v
-          }
-        }
-        df$simulation_period<-vec
-        
-        #ward status
-        for(i in (1:nrow(df))){
-          if(!is.na(df[i,34])){ws<-"ICU"
-          }else if(!is.na(df[i,37])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
-          if(exists("vec2")){
-            vec2<-c(vec2,ws)
-          }else{
-            vec2<-ws
-          }
-        }
-        df$ward_status<-as.factor(vec2)
-        #####
-        
-        heatwave_non<-c(
-          'baseline' = "Baseline period",
-          'heatwave' = "Heatwave period",
-          'post_heatwave'="Post heatwave",
-          'ramping'="Model warmup")
-        
-        ggplot(df, aes(x=as.factor(triage_score),y=ambulance_response_time))+
-          geom_jitter(aes())+
-          facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
-          xlab("Triage score") +
-          ylab("Ambulance response time (minutes)")+
-          labs(title="Distribution of ambulance response time by triage score and simulation period")+
-          theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
-          theme(plot.background = element_rect(fill = "#F5FBFA")) +
-          theme(panel.background = element_rect(fill = "#F5FBFA")) +
-          theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
-          theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
-                plot.title.position = "plot") +
-          theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
-          theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
-                plot.caption.position = "plot") +
-          theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
-          theme(axis.text = element_text(size = 10)) +
-          theme(panel.grid.minor.x = element_blank()) +
-          theme(axis.line.x = element_line(colour = "#545F66")) +
-          theme(axis.line.y = element_blank()) +
-          theme(axis.ticks = element_blank()) +
-          theme(legend.position = "right")+
-          theme(strip.background = element_blank())
-        
-      })
-      
-      #Time in ICU and Non-ICU
-          output$Dist4<-renderPlot({
-            req(DF_Dist)
+        req(input$Graphics)
+            Graphics<-reactive(input$Graphics)      
+            if(Graphics()==F){}else{    
+            
             df<-DF_Dist()
             HWStart<-HWStartTimes()
             HWStart<-HWStart[1]
@@ -2704,9 +2671,6 @@ shinyServer(function(input, output,session) {
             df<-df %>%
               mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
             
-            df<-df %>%
-              mutate(time_in_ward=rowSums(.[,c("patient_icu_los","patient_non_icu_ward_los","alc")],na.rm=T))
-                     
             df<-df %>%
               mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
             
@@ -2725,7 +2689,7 @@ shinyServer(function(input, output,session) {
             #ward status
             for(i in (1:nrow(df))){
               if(!is.na(df[i,34])){ws<-"ICU"
-              }else if(!is.na(df[i,38])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
+              }else if(!is.na(df[i,37])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
               if(exists("vec2")){
                 vec2<-c(vec2,ws)
               }else{
@@ -2741,13 +2705,12 @@ shinyServer(function(input, output,session) {
               'post_heatwave'="Post heatwave",
               'ramping'="Model warmup")
             
-            ggplot(df%>% filter(ward_status !="Not admitted to ward" & simulation_period != "post_heatwave"), aes(x=as.factor(ward_status),y=time_in_ward/1440))+
-              geom_boxplot()+
+            ggplot(df, aes(x=as.factor(triage_score),y=ambulance_response_time))+
               geom_jitter(aes())+
-              facet_wrap(~factor(simulation_period),scales = "fixed",labeller=as_labeller(heatwave_non))+
-              xlab("Simulation period") +
-              ylab("Total inpatient LOS (days)")+
-              labs(title="Distribution ICU and non-ICU ward LOS")+
+              facet_wrap(~factor(simulation_period),scales = "free",labeller=as_labeller(heatwave_non))+
+              xlab("Triage score") +
+              ylab("Ambulance response time (minutes)")+
+              labs(title="Distribution of ambulance response time by triage score and simulation period")+
               theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
               theme(plot.background = element_rect(fill = "#F5FBFA")) +
               theme(panel.background = element_rect(fill = "#F5FBFA")) +
@@ -2765,7 +2728,91 @@ shinyServer(function(input, output,session) {
               theme(axis.ticks = element_blank()) +
               theme(legend.position = "right")+
               theme(strip.background = element_blank())
-            
+            }
+      })
+      
+      #Time in ICU and Non-ICU
+          output$Dist4<-renderPlot({
+            req(DF_Dist)
+            req(input$Graphics)
+              Graphics<-reactive(input$Graphics)      
+              if(Graphics()==F){}else{
+                  
+                df<-DF_Dist()
+                HWStart<-HWStartTimes()
+                HWStart<-HWStart[1]
+                HWStop<-HWStopTimes()
+                HWStop<-HWStop[24]
+                
+                ####
+                # Edits to df ####
+                df$ed_admit_time<-as.numeric(df$ed_admit_time)
+                df$ed_arrival_time<-as.numeric(df$ed_arrival_time)
+                df<-df %>%
+                  mutate(ed_door_to_bed_all=rowMeans(.[,c("door_to_ed_bed_wait_for_ft_bed","door_to_ed_bed_wait_for_highest_severity","door_to_ed_bed_wait_for_lowest_severity")],na.rm=T))
+                
+                df<-df %>%
+                  mutate(time_in_ward=rowSums(.[,c("patient_icu_los","patient_non_icu_ward_los","alc")],na.rm=T))
+                         
+                df<-df %>%
+                  mutate(time_in_ed_all=rowMeans(.[,c("time_in_ed_for_highest_severity","time_in_ed_for_lowest_severity","time_in_ed_for_middle_severity")],na.rm=T))
+                
+                #simulation period
+                for(i in (1:nrow(df))){
+                  actTime<-df[i,4]
+                  if(actTime<HWStart & actTime>23040){v<-"baseline"}else if(actTime>HWStart & actTime<HWStop){v<-"heatwave"}else if(actTime>HWStop & actTime<HWStop+(1440*7)){v<-"post_heatwave"}else{v<-"ramping"}
+                  if(exists("vec")){
+                    vec<-c(vec,v)
+                  }else{
+                    vec<-v
+                  }
+                }
+                df$simulation_period<-vec
+                
+                #ward status
+                for(i in (1:nrow(df))){
+                  if(!is.na(df[i,34])){ws<-"ICU"
+                  }else if(!is.na(df[i,38])){ws<-"Non-ICU ward"}else{ws<-"Not admitted to ward"}
+                  if(exists("vec2")){
+                    vec2<-c(vec2,ws)
+                  }else{
+                    vec2<-ws
+                  }
+                }
+                df$ward_status<-as.factor(vec2)
+                #####
+                
+                heatwave_non<-c(
+                  'baseline' = "Baseline period",
+                  'heatwave' = "Heatwave period",
+                  'post_heatwave'="Post heatwave",
+                  'ramping'="Model warmup")
+                
+                ggplot(df%>% filter(ward_status !="Not admitted to ward" & simulation_period != "post_heatwave"), aes(x=as.factor(ward_status),y=time_in_ward/1440))+
+                  geom_boxplot()+
+                  geom_jitter(aes())+
+                  facet_wrap(~factor(simulation_period),scales = "fixed",labeller=as_labeller(heatwave_non))+
+                  xlab("Simulation period") +
+                  ylab("Total inpatient LOS (days)")+
+                  labs(title="Distribution ICU and non-ICU ward LOS")+
+                  theme(plot.margin = unit(c(1, 1, .5, 1), "cm")) +
+                  theme(plot.background = element_rect(fill = "#F5FBFA")) +
+                  theme(panel.background = element_rect(fill = "#F5FBFA")) +
+                  theme(text = element_text(family="Montserrat Medium", color = "#545F66")) +
+                  theme(plot.title = element_text(family = "Oswald", color = "black", size = 16, hjust = 0),
+                        plot.title.position = "plot") +
+                  theme(plot.subtitle = element_text(family = "Oswald Light", color = "#000000", size = 12)) +
+                  theme(plot.caption = element_text(family = "Montserrat Medium", colour = "#545F66", size = 8, hjust = 0),
+                        plot.caption.position = "plot") +
+                  theme(plot.tag = element_text(family = "Oswald", color = "black", size = 10, hjust = 1)) +
+                  theme(axis.text = element_text(size = 10)) +
+                  theme(panel.grid.minor.x = element_blank()) +
+                  theme(axis.line.x = element_line(colour = "#545F66")) +
+                  theme(axis.line.y = element_blank()) +
+                  theme(axis.ticks = element_blank()) +
+                  theme(legend.position = "right")+
+                  theme(strip.background = element_blank())
+              }
           })
       
       
