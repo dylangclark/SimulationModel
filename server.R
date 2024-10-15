@@ -571,7 +571,7 @@ shinyServer(function(input, output,session) {
                                              set_attribute("Patient ICU LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"ICU admit time")))))%>%
                                              release_all("ICU bed")%>%
                                              timeout(function()sample(size=1,rgamma(n=1000,shape=2.5,scale=2700))) %>%
-                                             renege_in(t=function()ifelse(rbinom(n=1,size=1,prob=0.01)==1,sample(size=1,replace=F,x=rgamma(n=1000,shape=1.8,scale=1000)),Inf),keep_seized = FALSE,
+                                             renege_in(t=function()ifelse(rbinom(n=1,size=1,prob=0.015)==1,sample(size=1,replace=F,x=rgamma(n=1000,shape=100,scale=15)),Inf),keep_seized = FALSE,
                                                        out=trajectory()%>%
                                                          set_attribute("Patients leave AMA",1)%>%
                                                          set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time")))))%>%
@@ -615,7 +615,7 @@ shinyServer(function(input, output,session) {
                                                  set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time"))))+3600)%>%
                                                  release_all("Non-ICU bed")%>%
                                                  simmer::join(CodeBlue2)) %>%
-                                             renege_in(t=function()ifelse(rbinom(n=1,size=1,prob=0.01)==1,sample(size=1,replace=F,x=rgamma(n=1000,shape=1.8,scale=1000)),Inf),keep_seized = FALSE,
+                                             renege_in(t=function()ifelse(rbinom(n=1,size=1,prob=0.01)==1,sample(size=1,replace=F,x=rgamma(n=1000,shape=100,scale=15)),Inf),keep_seized = FALSE,
                                                       out=trajectory()%>%
                                                         set_attribute("Patients leave AMA",1)%>%
                                                         set_attribute("Patient Non-ICU ward LOS",function()as.numeric(as.numeric(now(env)-(get_attribute(env,"Non-ICU admit time")))))%>%
@@ -693,11 +693,11 @@ shinyServer(function(input, output,session) {
                                       release_all("Waiting room chair")%>%
                                       set_attribute("Ambulance off-load time",function()ifelse(get_attribute(env,"mode of arrival")==1,as.numeric(as.numeric(now(env)-(get_attribute(env,"ED arrival time")))),0))%>%
                                       simmer::join(CodeBlue)) %>%
-                                  ####
+                            ####
                                   log_("need chair", tag="WaitingRoom")%>%
                                   seize("Waiting room chair",1)%>%
                                   
-                                  renege_in(t=function()ifelse(get_attribute(env,"mode of arrival")==0 & get_attribute(env, "triage score")>3.9 & get_attribute(env, "Patient dies")==0, sample(size=1,replace=T,x=rgamma(n=1000,shape=1.8,scale=200)),Inf),keep_seized = FALSE,
+                                  renege_in(t=function()ifelse(get_attribute(env,"mode of arrival")==0 & get_attribute(env, "triage score")>3.9 & get_attribute(env, "Patient dies")==0, sample(size=1,replace=F,x=rgamma(n=1000,shape=100,scale=6)),Inf),keep_seized = FALSE,
                                     out=trajectory()%>%
                                               set_attribute("Patients leave AMA",1)%>%
                                               #log_("leaving AMA")%>%
@@ -801,7 +801,7 @@ shinyServer(function(input, output,session) {
                                            set_attribute("Total deaths",function()get_server_count(env,"Morgue")+get_server_count(env,"Heatwave Morgue"))%>%
                                           release_all("coroner"),
                                                  
-                                  trajectory("Die prehos w/ provider and MCI")%>%
+                                  trajectory("Die prehos CPR in progress or w/ provider and MCI")%>%
                                           simmer::select(resources=FirstResponder,policy="first-available",id=0)%>%
                                           #log_("")%>%
                                           seize_selected(amount=1,id=0)%>%
@@ -1028,9 +1028,9 @@ shinyServer(function(input, output,session) {
                         
                         #death distributions
                         set_attribute(keys="DOA", values=function()
-                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.35),0)) %>%
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.15),0)) %>%
                         set_attribute(keys="diePreHos", values=function()
-                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=.05),0)) %>%
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=.3),0)) %>%
                         set_attribute(keys="dieWaitingRoom", 0) %>%
                         set_attribute(keys="dieED",values=function()
                           ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.3),0)) %>%
@@ -1112,7 +1112,7 @@ shinyServer(function(input, output,session) {
                         
                         #Set surge capacity for staffing and night ambulance shift
                             set_capacity("Ambulance",value=function()ifelse(SurgeStaff==1 & now(env)>40320 & now(env)<54720, (nAmbulance+2),
-                                                                      ifelse(SurgeStaff==0 & (now(env)/1440-now(env)%/%1440)*24<7 & (now(env)/1440-now(env)%/%1440)*24<20,(nAmbulance-3),nAmbulance)))%>%
+                                                                      ifelse(SurgeStaff==0 & (now(env)/1440-now(env)%/%1440)*24<8 & (now(env)/1440-now(env)%/%1440)*24<20,(nAmbulance-3),nAmbulance)))%>%
                       
                             set_capacity("fire",value=function()ifelse(SurgeStaff==1 & now(env)>40320 & now(env)<54720,3,nFire))%>%
                             set_capacity("quarter ED nurse",value=function()ifelse(SurgeStaff==1 & now(env)>40320 & now(env)<54720,32,nEDnurse))%>%
@@ -1180,11 +1180,11 @@ shinyServer(function(input, output,session) {
                         
                         #death distributions
                         set_attribute(keys="DOA", values=function()
-                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.30),0)) %>%
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=0.10),0)) %>%
                         set_attribute(keys="diePreHos", values=function()
-                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=1),0)) %>%
+                          ifelse(get_attribute(env,"Patient dies")>0,rbinom(n=1,size=1,prob=.30),0)) %>%
                         set_attribute(keys="dieWaitingRoom",0) %>%
-                        set_attribute(keys="dieED", 0) %>%
+                        set_attribute(keys="dieED", 1) %>%
                         set_attribute(keys="dieHosWard",0)%>%
                         
 
@@ -1533,6 +1533,7 @@ shinyServer(function(input, output,session) {
                       "Daily avg number of patients","Daily avg number of walk-ins","Daily avg number ambulance pts",
                       "Daily number hospital admissions","Daily number of deaths","Daily number of HW patients","Daily number of HW deaths",
                       "Daily avg CTAS 1","Daily avg CTAS 2","Daily avg CTAS 3","Daily avg CTAS 4","Daily avg CTAS 5")
+      DF<-DF[c(-1,-2),]
       
       reactable(DF,
                 theme=reactableTheme(style=list(fontFamily="Montserrat,sans-serif")),
@@ -1704,7 +1705,7 @@ shinyServer(function(input, output,session) {
                       "Daily avg number of patients","Daily avg number of walk-ins","Daily avg number ambulance pts",
                       "Daily number hospital admissions","Daily number of deaths","Daily number of HW patients","Daily number of HW deaths",
                       "Daily avg CTAS 1","Daily avg CTAS 2","Daily avg CTAS 3","Daily avg CTAS 4","Daily avg CTAS 5")
-      
+      DF<-DF[c(-1,-2),]
       
       write.csv(DF,file)
     })
