@@ -75,7 +75,7 @@ shinyUI(
                br(),
                uiOutput("IHWInput",width="200px"),
                br(),
-               numericInput(inputId = "iterations",label="Number of model runs (Monte Carlo)",value=5,width="200px"),
+               numericInput(inputId = "iterations",label="Number of model runs (Monte Carlo)",value=20,width="200px"),
                numericInput(inputId = "RunTime", label="Number of days to run model for", value = 65, width="200px"),
                paste0("The default heatwave will start on day 30 of the model runs. Days 16 to 30 (14 days) are used as a baseline. 
                       Days 30 to 37 (8 days) are representative of the 2021 June heatdome. Days 38 to 45 reflect the post-heatwave lag period. Day 46 to 65 are included to ensure patients that arrive on day 45 are followed to discharge."),
